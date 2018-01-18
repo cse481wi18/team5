@@ -16,7 +16,7 @@ class Base(object):
 
     def __init__(self):
         # TODO: Create publisher
-        self.pub = rospy.Publisher("base_controller/command", Twist, queue_size=10)
+        self.pub = rospy.Publisher("base_controller/command", Twist, queue_size=10)        
 
     def move(self, linear_speed, angular_speed):
         """Moves the base instantaneously at given linear and angular speeds.
