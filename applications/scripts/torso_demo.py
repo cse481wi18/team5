@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 
 import rospy
-
+import fetch_api
 
 def print_usage():
     print 'Moves the torso to a certain height between [0.0, 0.4]'
@@ -23,6 +23,10 @@ def main():
         print_usage()
         return
     height = float(argv[1])
+    
+    torso = fetch_api.Torso()
+    
+    torso.set_height(height)
 
 
 if __name__ == '__main__':
