@@ -19,6 +19,8 @@ def main():
     reader = JointStateReader()
     rospy.sleep(0.5)
     names = fetch_api.ArmJoints.names()
+    names.append("l_gripper_finger_joint")
+    names.append("torso_lift_joint")
     arm_vals = reader.get_joints(names)
     for k, v in zip(names, arm_vals):
         print '{}\t{}'.format(k, v)
