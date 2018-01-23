@@ -59,6 +59,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   SetTorso.srv
+  SetHeadPanTilt.srv
 )
 
 ## Generate actions in the 'action' folder

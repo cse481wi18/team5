@@ -1,0 +1,8 @@
+float64 shoulder_pan
+float64 shoulder_lift
+float64 upperarm_roll
+float64 elbow_flex
+float64 forearm_roll
+float64 wrist_flex
+float64 wrist_roll
+---
