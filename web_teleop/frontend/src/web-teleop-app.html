@@ -60,12 +60,21 @@
       on-fail="_handleHeadPanTiltError"
       name="/web_teleop/set_head_pan_tilt"
       service-type="web_teleop/SetHeadPanTilt"></ros-service>
+    <ros-service ros="{{ros}}"
+      id="armService"
+      on-response="_handleArmSuccess"
+      on-fail="_handleArmError"
+      name="/web_teleop/set_arm"
+      service-type="web_teleop/SetArm"></ros-service>
+    <ros-service ros="{{ros}}"
+      id="gripperService"
+      on-response="_handleGripperSuccess"
+      on-fail="_handleGripperError"
+      name="/web_teleop/set_gripper"
+      service-type="web_teleop/SetGripper"></ros-service>
 
     <h1>Fetch teleop</h1>
-    <div>
-      Torso height: [[_round(torsoHeight.data, 0.001)]] meters
-    </div>
-    <div class="layout horizontal center">
+    <div id="torso" class="layout horizontal center">
       <paper-slider min="0" max="0.4" step="0.01" editable
         value="{{desiredTorsoHeight}}"></paper-slider>
       <paper-button on-tap="_setTorso">Set torso</paper-button>
@@ -73,11 +82,7 @@
     <div id="driving" class="layout vertical">
       <div class="layout horizontal">
         <div class="flex"></div>
-        <paper-button
-          on-down="_startForward"
-          on-up="_endBaseCommand">
-          Forward
-        </paper-button>
+        <paper-button on-down="_startForward" on-up="_endBaseCommand">Forward</paper-button>
         <div class="flex"></div>
       </div>
       <div class="layout horizontal">
@@ -86,10 +91,31 @@
         <paper-button on-down="_startRight" on-up="_endBaseCommand">Right</paper-button>
       </div>
     </div>
-    <div class="layout horizontal center">
-      <paper-slider min="-0.25" max="0.5" step="0.01" editable
-        value="{{desiredHeadTilt}}"></paper-slider>
+    <div id="head" class="layout horizontal center">
+      <paper-slider min="-0.25" max="0.5" step="0.01" editable value="{{desiredHeadTilt}}"></paper-slider>
       <paper-button on-tap="_setTilt">Set tilt</paper-button>
+    </div>
+    <div id="arm-1" class="layout horizontal center">
+      Shoulder Pan:
+      <paper-slider min="-92" max="92" step="1" editable value="{{desiredShoulderPan}}"></paper-slider>
+      Shoulder Lift:
+      <paper-slider min="-70" max="87" step="1" editable value="{{desiredShoulderLift}}"></paper-slider>
+      Upper Arm Roll:
+      <paper-slider min="-90" max="90" step="1" editable value="{{desiredUpperArmRoll}}"></paper-slider>
+      Elbow Flex:
+      <paper-slider min="-129" max="129" step="1" editable value="{{desiredElbowFlex}}"></paper-slider>
+    </div>
+    <div id="arm-2" class="layout horizontal center">
+      Forearm Roll:
+      <paper-slider min="-90" max="90" step="1" editable value="{{desiredForearmRoll}}"></paper-slider>
+      Wrist Flex:
+      <paper-slider min="-125" max="125" step="1" editable value="{{desiredWristFlex}}"></paper-slider>
+      Wrist Roll:
+      <paper-slider min="-90" max="90" step="1" editable value="{{desiredWristRoll}}"></paper-slider>
+    </div>
+    <paper-button on-tap="_setArm">Set Arm</paper-button>
+    <div class="layout horizontal center">
+      <paper-button on-tap="_setGripper">Close Gripper</paper-button>
     </div>
     {{status}}
     <div id="camera">
@@ -174,14 +200,39 @@
 
       _setArm() {
         this.status = 'Setting arm...';
-        this.$.armService.call({});
-//        shoulder_pan = 0
-//        shoulder_lift = 0
-//        upperarm_roll = 0
-//        elbow_flex = 0
-//        forearm_roll = 0
-//        wrist_flex = 0
-//        wrist_roll = 0
+        this.$.armService.call({
+          shoulder_pan: this.desiredShoulderPan * Math.PI / 180,
+          shoulder_lift: this.desiredShoulderLift * Math.PI / 180,
+          upperarm_roll: this.desiredUpperArmRoll * Math.PI / 180,
+          elbow_flex: this.desiredElbowFlex * Math.PI / 180,
+          forearm_roll: this.desiredForearmRoll * Math.PI / 180,
+          wrist_flex: this.desiredWristFlex * Math.PI / 180,
+          wrist_roll: this.desiredWristRoll * Math.PI / 180
+        });
+      }
+
+      _handleArmSuccess() {
+        this.status = 'Set arm.';
+      }
+
+      _handleArmError(evt) {
+        this.status = 'Error: ' + evt.detail;
+      }
+
+      // Set gripper
+
+      _setGripper() {
+        this.status = 'Setting gripper...';
+        this.$.gripperService.call({ closed: !!this.desiredGripperClosed });
+      }
+
+      _handleGripperSuccess() {
+        this.status = 'Set gripper.';
+      }
+
+      _handleGripperError(evt) {
+        this.status = 'Error: ' + evt.detail;
+      }
 
       // Movement
 
