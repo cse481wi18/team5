@@ -28,18 +28,16 @@ class NavPath(object):
         curr_pose = msg.pose.pose
         curr_point = msg.pose.pose.position
         if not self.lastPos or self.distance(self.lastPos, curr_point) > 0.1:
-		self.lastPos = curr_point
-		self._path.append(self.lastPos)
-                print(self._path)
-		marker = Marker(type = Marker.LINE_STRIP, 
-			scale= Vector3(0.06, 0.06, 0.06), 
-			color = ColorRGBA(0.0, 1.0, 0.0, 0.8), 
-			header=Header(frame_id='odom'),
-		        points=self._path)
-		print("published marker")
-		self.marker_publisher.publish(marker)
-            	#self._path.append(msg.foo.bar)
-            
+            self.lastPos = curr_point
+            self._path.append(self.lastPos)
+            marker = Marker(type = Marker.LINE_STRIP, 
+                    scale= Vector3(0.06, 0.06, 0.06), 
+                    color = ColorRGBA(0.0, 1.0, 0.0, 0.8), 
+                    header=Header(frame_id='odom'),
+                    points=self._path)
+            #print("published marker")
+            self.marker_publisher.publish(marker)
+                        
 
     def distance(self, pt1, pt2):
       xDist = pt1.x - pt2.x
