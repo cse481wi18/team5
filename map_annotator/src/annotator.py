@@ -4,6 +4,7 @@ import copy
 import os
 import threading
 import pickle
+
 class Annotator(object):
     def __init__(self, data_file):
         self.pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
@@ -34,6 +35,13 @@ class Annotator(object):
 
     def save_pose(self, pose_name):
         self._saved_msgs[pose_name] = self._curr_msg
+        self.write_dump()
+        return self._curr_msg
+
+    def update_pose(self, pose_name, pose):
+        if pose_name not in self._saved_msgs:
+            return False
+        self._saved_msgs[pose_name].pose.pose = pose
         self.write_dump()
 
     def write_dump(self):
