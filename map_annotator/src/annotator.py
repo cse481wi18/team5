@@ -5,16 +5,20 @@ import os
 import threading
 import pickle
 
+FILE_NAME = "annotator-poses.pickle"
+
 class Annotator(object):
-    def __init__(self, data_file):
+    def __init__(self, data_file=FILE_NAME):
         self.pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
         self.sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, callback=self._pose_callback)
         self._curr_msg = None
         self._data_file = data_file
         try:
             self._saved_msgs = pickle.load(open(data_file, "rb"))
-        except:
+        except IOError:
+            # Create empty file
             self._saved_msgs = {}
+            self.write_dump()
 
     def _pose_callback(self, msg):
         self._curr_msg = msg

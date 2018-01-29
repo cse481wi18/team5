@@ -35,12 +35,10 @@
       on-close="_handleClose"
       on-error="_handleError"></ros-websocket>
 
-
-      <ros-topic auto id="userActions"
-        topic="map_annotator/user_actions"
-        ros="{{ros}}"
-        msg-type="map_annotator/UserAction"
-      ></ros-topic>
+    <ros-topic auto id="userActions"
+      topic="map_annotator/user_actions"
+      ros="{{ros}}"
+      msg-type="map_annotator/UserAction"></ros-topic>
 
     <ros-topic auto ros="{{ros}}"
       topic="map_annotator/pose_names"
@@ -59,7 +57,7 @@
             </template>
             <paper-button on-tap="_handleCreate">Create</paper-button>
           </div>
-          <ros-rviz id="rviz" class="flex"></ros-rviz>
+          <ros-rviz id="rviz" ros="[[ros]]" class="flex"></ros-rviz>
         </div>
       </div>
 

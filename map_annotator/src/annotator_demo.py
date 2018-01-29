@@ -17,7 +17,7 @@ commands_msg = """Commands:
   help: Show this list of commands
 """
 
-FILE_NAME="pickled"
+#FILE_NAME="pickled"
 
 def get_command():
     return raw_input('> ').split(" ", 1)
@@ -26,7 +26,7 @@ def main():
     print help_message
     print commands_msg
     rospy.init_node("annotator")
-    annotator = Annotator(FILE_NAME)
+    annotator = Annotator()
     while (True):
         command = get_command() 
         if command[0] == "exit":
@@ -47,6 +47,10 @@ def main():
                 print "No such pose '" + command[1] + "'" 
         elif command[0] == "goto":
             result = annotator.go_to(command[1])
+            if not result:
+                print "No such pose '" + command[1] + "'"
+        elif command[0] == "read":
+            result = annotator.get_msg(command[1])
             if not result:
                 print "No such pose '" + command[1] + "'"
         elif command[0] == "help":
