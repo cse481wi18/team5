@@ -15,6 +15,45 @@ def wait_for_time():
     while rospy.Time.now().to_sec() == 0:
         pass
 
+def make_6dof_controls():
+    controls = []
+    
+    control = InteractiveMarkerControl()
+    control.orientation.w = 1
+    control.orientation.x = 1
+    control.orientation.y = 0
+    control.orientation.z = 0
+    control.name = "rotate_x"
+    control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+    controls.append(copy.deepcopy(control))
+    control.name = "move_x"
+    control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+    controls.append(copy.deepcopy(control))
+
+    control.orientation.w = 1
+    control.orientation.x = 0
+    control.orientation.y = 1
+    control.orientation.z = 0
+    control.name = "rotate_z"
+    control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+    controls.append(copy.deepcopy(control))
+    control.name = "move_z"
+    control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+    controls.append(copy.deepcopy(control))
+
+    control.orientation.w = 1
+    control.orientation.x = 0
+    control.orientation.y = 0
+    control.orientation.z = 1
+    control.name = "rotate_y"
+    control.interaction_mode = InteractiveMarkerControl.ROTATE_AXIS
+    controls.append(copy.deepcopy(control))
+    control.name = "move_y"
+    control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
+    controls.append(copy.deepcopy(control))
+    
+    return controls
+
 class GripperTeleop(object):
     def __init__(self, arm, gripper, im_server):
         self._arm = arm
@@ -67,18 +106,18 @@ class GripperTeleop(object):
         gripper_control.markers.append(finger_left_m)
         gripper_control.markers.append(finger_right_m)
 
-        gripper_im = InteractiveMarker()
-        gripper_im.header.frame_id = "wrist_roll_link"
-        gripper_im.name = "GripperMarker"
-        gripper_im.description = "Gripper Interactive Marker"
-        gripper_im.controls.append(gripper_control)
-
         for m in gripper_control.markers:
             m.color.r = 0.0
             m.color.g = 0.5
             m.color.b = 0.5
             m.color.a = 1.0
 
+        gripper_im = InteractiveMarker()
+        gripper_im.header.frame_id = "wrist_roll_link"
+        gripper_im.name = "GripperMarker"
+        gripper_im.description = "Gripper Interactive Marker"
+        gripper_im.controls.append(gripper_control)
+        gripper_im.controls.extend(make_6dof_controls())
         return gripper_im
 
     def start(self):
