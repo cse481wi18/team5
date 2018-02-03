@@ -82,7 +82,7 @@ class GripperTeleop(object):
         finger_left_m.mesh_resource = L_FINGER_MESH
         finger_left_m.pose = copy.deepcopy(pose_st.pose)
         finger_left_m.pose.position.x += 0.166
-        finger_left_m.pose.position.y -= 0.053
+        finger_left_m.pose.position.y -= 0.054
         finger_left_m.scale.x = 1.0
         finger_left_m.scale.y = 1.0
         finger_left_m.scale.z = 1.0
@@ -93,7 +93,7 @@ class GripperTeleop(object):
         finger_right_m.mesh_resource = R_FINGER_MESH
         finger_right_m.pose = copy.deepcopy(pose_st.pose)
         finger_right_m.pose.position.x += 0.166
-        finger_right_m.pose.position.y += 0.053
+        finger_right_m.pose.position.y += 0.054
         finger_right_m.scale.x = 1.0
         finger_right_m.scale.y = 1.0
         finger_right_m.scale.z = 1.0
@@ -118,6 +118,7 @@ class GripperTeleop(object):
         gripper_im.description = "Gripper Interactive Marker"
         gripper_im.controls.append(gripper_control)
         gripper_im.controls.extend(make_6dof_controls())
+        gripper_im.scale = 0.2
         return gripper_im
 
     def start(self):
