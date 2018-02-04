@@ -92,7 +92,7 @@ class GripperTeleop(object):
         self._gripper = gripper
         self._im_server = im_server
         pose_st = PoseStamped()
-        pose_st.header.frame_id = "wrist_roll_link"
+        pose_st.header.frame_id = "base_link"
         pose_st.pose.position = Point(0, 0, 0)
         pose_st.pose.orientation.w = 1
         self._gripper_im = self.get_marker(pose_st)
@@ -140,10 +140,10 @@ class GripperTeleop(object):
         
         # set every marker in the gripper IM to green
         for m in gripper_control.markers:
-            m.color.r = 0.0
-            m.color.g = 0.5
-            m.color.b = 0.5
-            m.color.a = 1.0
+            m.color.r = 0
+            m.color.g = 1
+            m.color.b = 0
+            m.color.a = 1
 
         gripper_im = InteractiveMarker()
         gripper_im.header = copy.deepcopy(pose_st.header)
@@ -163,6 +163,7 @@ class GripperTeleop(object):
         new_pose_st = PoseStamped()
         new_pose_st.pose = feedback.pose
         new_pose_st.header = feedback.header
+        feedback.header.stamp = rospy.Time(0)
         if feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             if feedback.menu_entry_id == GOTO_ENTRY:
                 self._arm.move_to_pose(new_pose_st)
@@ -174,10 +175,21 @@ class GripperTeleop(object):
                 pass
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             # update color of the gripper based on if pose is possible
+            gripper_control = self._gripper_im.controls[0]
             if self._arm.compute_ik(new_pose_st):
                 print("valid movement")
+                for m in gripper_control.markers:
+                    m.color.r = 0
+                    m.color.g = 1
+                    m.color.b = 0
+                    m.color.a = 1
             else:
                 print("invalid movement")
+                for m in gripper_control.markers:
+                    m.color.r = 1
+                    m.color.g = 0
+                    m.color.b = 0
+                    m.color.a = 1
         # Does insert on self._im_server need to be called again
         self._im_server.applyChanges()
 
