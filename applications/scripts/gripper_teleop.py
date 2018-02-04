@@ -5,6 +5,7 @@ import rospy
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback, Marker, MenuEntry
 from geometry_msgs.msg import PoseStamped, Point
+from std_msgs.msg import ColorRGBA
 import copy
 
 GRIPPER_MESH = 'package://fetch_description/meshes/gripper_link.dae'
@@ -99,7 +100,6 @@ class GripperTeleop(object):
 
     def get_marker(self, pose_st):
         gripper_m = Marker()
-        gripper_m.header = pose_st.header
         gripper_m.type = Marker.MESH_RESOURCE
         gripper_m.mesh_resource = GRIPPER_MESH
         gripper_m.pose = copy.deepcopy(pose_st.pose)
@@ -109,7 +109,6 @@ class GripperTeleop(object):
         gripper_m.scale.z = 1.0
 
         finger_left_m = Marker()
-        finger_left_m.header = pose_st.header
         finger_left_m.type = Marker.MESH_RESOURCE
         finger_left_m.mesh_resource = L_FINGER_MESH
         finger_left_m.pose = copy.deepcopy(pose_st.pose)
@@ -120,7 +119,6 @@ class GripperTeleop(object):
         finger_left_m.scale.z = 1.0
 
         finger_right_m = Marker()
-        finger_right_m.header = pose_st.header
         finger_right_m.type = Marker.MESH_RESOURCE
         finger_right_m.mesh_resource = R_FINGER_MESH
         finger_right_m.pose = copy.deepcopy(pose_st.pose)
@@ -140,10 +138,7 @@ class GripperTeleop(object):
         
         # set every marker in the gripper IM to green
         for m in gripper_control.markers:
-            m.color.r = 0
-            m.color.g = 1
-            m.color.b = 0
-            m.color.a = 1
+            m.color = ColorRGBA(0, 1, 0, 1)
 
         gripper_im = InteractiveMarker()
         gripper_im.header = copy.deepcopy(pose_st.header)
@@ -176,21 +171,14 @@ class GripperTeleop(object):
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             # update color of the gripper based on if pose is possible
             gripper_control = self._gripper_im.controls[0]
+            self._gripper_im.pose = new_pose_st.pose
             if self._arm.compute_ik(new_pose_st):
-                print("valid movement")
                 for m in gripper_control.markers:
-                    m.color.r = 0
-                    m.color.g = 1
-                    m.color.b = 0
-                    m.color.a = 1
+                    m.color = ColorRGBA(0, 1, 0, 1)
             else:
-                print("invalid movement")
                 for m in gripper_control.markers:
-                    m.color.r = 1
-                    m.color.g = 0
-                    m.color.b = 0
-                    m.color.a = 1
-        # Does insert on self._im_server need to be called again
+                    m.color = ColorRGBA(1, 0, 0, 1)
+        self._im_server.insert(self._gripper_im, feedback_cb=self.handle_feedback)
         self._im_server.applyChanges()
 
 
