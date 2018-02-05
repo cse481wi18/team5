@@ -3,7 +3,8 @@
 import fetch_api
 import rospy
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
-from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback, Marker, MenuEntry
+from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback, Marker, \
+    MenuEntry
 from geometry_msgs.msg import PoseStamped, Point
 from std_msgs.msg import ColorRGBA
 import copy
@@ -12,19 +13,20 @@ GRIPPER_MESH = 'package://fetch_description/meshes/gripper_link.dae'
 L_FINGER_MESH = 'package://fetch_description/meshes/l_gripper_finger_link.STL'
 R_FINGER_MESH = 'package://fetch_description/meshes/r_gripper_finger_link.STL'
 
-
 # Menu entry ids
 GOTO_ENTRY = 1
 OPEN_ENTRY = 2
 CLOSE_ENTRY = 3
 
+
 def wait_for_time():
     while rospy.Time.now().to_sec() == 0:
         pass
 
+
 def make_6dof_controls():
     controls = []
-    
+
     control = InteractiveMarkerControl()
     control.orientation.w = 1
     control.orientation.x = 1
@@ -58,8 +60,9 @@ def make_6dof_controls():
     control.name = "move_y"
     control.interaction_mode = InteractiveMarkerControl.MOVE_AXIS
     controls.append(copy.deepcopy(control))
-    
+
     return controls
+
 
 def create_menu():
     menu_entries = []
@@ -72,13 +75,13 @@ def create_menu():
     goto_pose_entry.command_type = MenuEntry.FEEDBACK
     goto_pose_entry.title = "Go to pose"
     menu_entries.append(goto_pose_entry)
-    
+
     # open gripper
     open_gripper_entry.id = OPEN_ENTRY
     open_gripper_entry.command_type = MenuEntry.FEEDBACK
     open_gripper_entry.title = "Open gripper"
     menu_entries.append(open_gripper_entry)
-    
+
     # close gripper
     close_gripper_entry.id = CLOSE_ENTRY
     close_gripper_entry.command_type = MenuEntry.FEEDBACK
@@ -86,6 +89,7 @@ def create_menu():
     menu_entries.append(close_gripper_entry)
 
     return menu_entries
+
 
 class GripperTeleop(object):
     def __init__(self, arm, gripper, im_server):
@@ -135,7 +139,7 @@ class GripperTeleop(object):
         gripper_control.markers.append(gripper_m)
         gripper_control.markers.append(finger_left_m)
         gripper_control.markers.append(finger_right_m)
-        
+
         # set every marker in the gripper IM to green
         for m in gripper_control.markers:
             m.color = ColorRGBA(0, 1, 0, 1)
@@ -182,20 +186,6 @@ class GripperTeleop(object):
         self._im_server.applyChanges()
 
 
-class AutoPickTeleop(object):
-    def __init__(self, arm, gripper, im_server):
-        self._arm = arm
-        self._gripper = gripper
-        self._im_server = im_server
-
-    def start(self):
-        obj_im = InteractiveMarker()
-        self._im_server.insert(obj_im, feedback_cb=self.handle_feedback)
-
-    def handle_feedback(self, feedback):
-        pass
-
-
 def main():
     """
     ...
@@ -206,14 +196,15 @@ def main():
     gripper = fetch_api.Gripper()
     arm = fetch_api.Arm()
 
-    im_server = InteractiveMarkerServer('gripper_im_server')
-    #auto_pick_im_server = InteractiveMarkerServer('auto_pick_im_server')
+    im_server = InteractiveMarkerServer('gripper_im_server', q_size=2)
+    # auto_pick_im_server = InteractiveMarkerServer('auto_pick_im_server')
     teleop = GripperTeleop(arm, gripper, im_server)
-    #auto_pick = AutoPickTeleop(arm, gripper, auto_pick_im_server)
+    # auto_pick = AutoPickTeleop(arm, gripper, auto_pick_im_server)
     teleop.start()
-    #auto_pick.start()
+    # auto_pick.start()
 
     rospy.spin()
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

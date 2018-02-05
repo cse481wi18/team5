@@ -51,7 +51,7 @@ class Arm(object):
         joint_state = response.solution.joint_state
         for name, position in zip(joint_state.name, joint_state.position):
             if name in ArmJoints.names():
-                rospy.loginfo('{}: {}'.format(name, position))
+                rospy.logdebug('{}: {}'.format(name, position))
         return True
 
     def move_to_joints(self, arm_joints):
