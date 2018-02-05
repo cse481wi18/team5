@@ -195,7 +195,7 @@ def get_pose_offset(pose_st, type):
         new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
     elif type == POSE_OFFSET_LIFT:
         new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
-        new_pose_st.pose.position.z += 0.3
+        new_pose_st.pose.position.z += 0.2
     return new_pose_st
 
 
