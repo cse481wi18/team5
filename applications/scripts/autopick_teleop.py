@@ -4,11 +4,13 @@ import copy
 
 import fetch_api
 import rospy
-from geometry_msgs.msg import PoseStamped, Point
+from geometry_msgs.msg import PoseStamped, Point, Quaternion
 from interactive_markers.interactive_marker_server import InteractiveMarkerServer
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback, Marker, \
     MenuEntry
+import tf.transformations as tft
+import numpy as np
 
 from fetch_api import Gripper
 
@@ -188,14 +190,41 @@ def get_pose_offset(pose_st, type):
     :param type:
     :return:
     """
-    new_pose_st = copy.deepcopy(pose_st)
+
+    transform_matrix = tft.quaternion_matrix(
+        [pose_st.pose.orientation.x, pose_st.pose.orientation.y, pose_st.pose.orientation.z,
+         pose_st.pose.orientation.w])
+    transform_matrix[0][3] = pose_st.pose.position.x
+    transform_matrix[1][3] = pose_st.pose.position.y
+    transform_matrix[2][3] = pose_st.pose.position.z
+
     if type == POSE_OFFSET_PRE:
-        new_pose_st.pose.position.x -= 0.4
+        translate_matrix = np.array(((1, 0, 0, -0.4),
+                                     (0, 1, 0, 0),
+                                     (0, 0, 1, 0),
+                                     (0, 0, 0, 1)))
+        # new_pose_st.pose.position.x -= 0.4
     elif type == POSE_OFFSET_GRASP:
-        new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
+        # new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
+        translate_matrix = np.array(((1, 0, 0, -POSE_OFFSET_GRASP_X),
+                                     (0, 1, 0, 0),
+                                     (0, 0, 1, 0),
+                                     (0, 0, 0, 1)))
     elif type == POSE_OFFSET_LIFT:
-        new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
-        new_pose_st.pose.position.z += 0.2
+        # new_pose_st.pose.position.x -= POSE_OFFSET_GRASP_X
+        # new_pose_st.pose.position.z += 0.2
+        translate_matrix = np.array(((1, 0, 0, -POSE_OFFSET_GRASP_X),
+                                     (0, 1, 0, 0),
+                                     (0, 0, 1, +0.2),
+                                     (0, 0, 0, 1)))
+
+    result_matrix = np.dot(transform_matrix, translate_matrix)
+    new_pose_st = copy.deepcopy(pose_st)
+    translation = tft.translation_from_matrix(result_matrix)
+    q = tft.quaternion_from_matrix(result_matrix)
+    new_pose_st.pose.position = Point(translation[0], translation[1], translation[2])
+    new_pose_st.pose.orientation = Quaternion(q[0], q[1], q[2], q[3])
+
     return new_pose_st
 
 
@@ -244,9 +273,11 @@ class AutoPickTeleop(object):
         new_pose_st.pose = feedback.pose
         new_pose_st.header = feedback.header
         feedback.header.stamp = rospy.Time(0)
+        markers = self._gripper_im.controls[0].markers
         if feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             if feedback.menu_entry_id == PICKUP_ENTRY:
                 self._gripper.open()
+                pre_pose = markers[0].pose
                 self._arm.move_to_pose(get_pose_offset(new_pose_st, POSE_OFFSET_PRE))
                 self._arm.move_to_pose(get_pose_offset(new_pose_st, POSE_OFFSET_GRASP))
                 self._gripper.close(Gripper.MAX_EFFORT)
@@ -259,7 +290,6 @@ class AutoPickTeleop(object):
                 pass
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             # update color of the gripper based on if pose is possible
-            markers = self._gripper_im.controls[0].markers
             self._gripper_im.pose = new_pose_st.pose
 
             # Check each gripper and color accordingly
