@@ -1,148 +1,193 @@
 #!/usr/bin/env python
 
-from gripper_teleop import GripperTeleop
-import fetch_api
+import sys
+import copy
+
 import rospy
 from ar_track_alvar_msgs.msg import AlvarMarkers
-from interactive_markers.interactive_marker_server import InteractiveMarkerServer
-from visualization_msgs.msg import InteractiveMarker, InteractiveMarkerControl, InteractiveMarkerFeedback, Marker, MenuEntry
-from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import ColorRGBA
-import copy
-import pickle
-import tf
+from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState
+
 FILE_NAME = "program_by_demo_saved.pickle"
 
-class ProgramByDemo(GripperTeleop):
+HELP_MESSAGE = """ This program lets you save a list of actions the gripper can take
+for future use. These commands do not manipulate the robot.
+Commands:
+    start: If a programmed action is not currently being created, start creation of one
+    save: save the current pose, which includes the state of the gripper (opened or closed)
+        - After saving, a numbered list of frames to save the pose in are provided. Provide
+        the appropriate number to make a frame selection
+        - If you want to be particular about how you order arm movement with opening/closing
+        of the gripper, order your saving of poses accordingly (e.g. save once after moving,
+        and again after closing the gripper even if the arm position doesn't change)
+    finish <program_name>: save your program with the name "program_name"
+    run <program_name>: run a previously saved program "program_name"
+    exit: quits the program
+    ***<program_name> cannot have spaces***
+"""
 
-    GOTO_ENTRY = 1
-    OPEN_ENTRY = 2
-    CLOSE_ENTRY = 3
-    CREATE_PROGRAM = 4
-    SAVE_POSE = 5
-    SAVE_PROGRAM = 6
-    CHANGE_FRAME = 7
-    BASE_LINK_FRAME = 8
-    TAG_OFFSET = 9
 
-    def __init__(self, arm, gripper, im_server, data_file=FILE_NAME):
+class Action:
+    """
+    TODO: use this class to save information about end-effector poses as part of a Program
+    """
+
+    def __init__(self):
+        pass
+
+
+class ProgramByDemoHelper:
+    """
+    Helper class for all robot info.
+    """
+
+    # Need to subscribe to topics that publish:
+    # poses of the ar tags
+    # pose of the gripper
+    # poses of the gripper fingers
+    def __init__(self):
         self._ar_tags = []
-        super(ProgramByDemo, self).__init__(arm, gripper, im_server, self.handle_feedback)
-        self.action_list = []
-        # frame marker of none implies base_link frame
-        self._frame = "base_link"
-        self._gripper_open = True
-        self._programming = False
-        self.sub = rospy.Subscriber("/ar_pose_marker", AlvarMarkers, self.tags_callback)
-        self._data_file = data_file
+        self._ar_sub = rospy.Subscriber('/ar_pose_marker', AlvarMarkers, self._ar_feedback)
+        self._controller_client = None  # TODO create action client to relax arm and call
+
+    def getARTagMarkers(self):
+        return self._ar_tags
+
+    def getGripperPose(self):
+        pass
+
+    def isGripperOpen(self):
+        pass
+
+    def isGripperClosed(self):
+        pass
+
+    def runProgram(self, prog):
+        pass
+
+    #### Need a bunch of handlers for each subcriber/actionclient callback
+
+    def _ar_feedback(self, msg):
+        self._ar_tags = msg.markers
+
+    def _send_arm_goal(self, state):
+        """
+        Helper function for sending an arm goal
+        :param state: RUNNING or STOPPED
+        """
+        goal = QueryControllerStatesGoal()
+        state = ControllerState()
+        state.name = 'arm_controller/follow_joint_trajectory'
+        state.state = state
+        goal.updates.append(state)
+
+        self._controller_client.send_goal(goal)
+        self._controller_client.wait_for_result()
+
+    def relax_arm(self):
+        self._send_arm_goal(ControllerState.STOPPED)
+
+    def start_arm(self):
+        self._send_arm_goal(ControllerState.RUNNING)
+
+    def get_action(self):
+        pass
 
 
-    def tags_callback(self, feedback):
-        self._ar_tags = feedback.markers
-        self._gripper_im.menu_entries = self.create_menu()
+class Program:
+    """
+    This defines a program that the user can define by manually setting the end-effector positions
+    and saving them with the command-line application.
+    """
+
+    def __init__(self):
+        self._creating = False
+        self._actions = []
+
+    def save_action(self, frame_index):
+        # TODO implement
+        self._actions.append({"action": None, "frame": FRAMES[frame_index]})
+
+    def get_actions(self):
+        return copy.deepcopy(self._actions)
+
+    def run(self):
+        for action in self._actions:
+            # TODO this
+            action.run()
 
 
-    def create_menu(self):
-        menu_entries = super(ProgramByDemo, self).create_menu()
-        
-        create_program_entry = MenuEntry()
-        save_pose_entry = MenuEntry()
-        save_program_entry = MenuEntry()
-        change_frame_entry = MenuEntry()
-        base_link_frame_entry = MenuEntry()
-        # create program
-        create_program_entry.id = self.CREATE_PROGRAM
-        create_program_entry.command_type = MenuEntry.FEEDBACK
-        create_program_entry.title = "Create program"
-        menu_entries.append(create_program_entry)
-        # save pose
-        save_pose_entry.id = self.SAVE_POSE
-        save_pose_entry.command_type = MenuEntry.FEEDBACK
-        save_pose_entry.title = "Save pose"
-        menu_entries.append(save_pose_entry)
-         # create program
-        save_program_entry.id = self.SAVE_PROGRAM
-        save_program_entry.command_type = MenuEntry.FEEDBACK
-        save_program_entry.title = "Save program"
-        menu_entries.append(save_program_entry)
-        # change frame
-        change_frame_entry.id = self.CHANGE_FRAME
-        change_frame_entry.command_type = MenuEntry.FEEDBACK
-        change_frame_entry.title = "Change frame"
-        menu_entries.append(change_frame_entry)
-        # base link frame
-        base_link_frame_entry.id = self.BASE_LINK_FRAME
-        base_link_frame_entry.parent_id = self.CHANGE_FRAME
-        base_link_frame_entry.command_type = MenuEntry.FEEDBACK
-        base_link_frame_entry.title = "base_link frame"
-        menu_entries.append(base_link_frame_entry)
+MODE_MAIN = 0
+MODE_PROGRAM = 1
+MODE_SELECT_FRAME = 2
 
-        for marker in self._ar_tags:
-            tag_entry = MenuEntry()
-            tag_entry.id = self.TAG_OFFSET + marker.id
-            tag_entry.parent_id = self.CHANGE_FRAME
-            tag_entry.command_type = MenuEntry.FEEDBACK
-            tag_entry.title = "Tag %d" % marker.id
-            menu_entries.append(tag_entry)
-        return menu_entries
+MODES = ["main", "program", "select_frame"]
+FRAMES = ["frame a"]  # TODO populate
 
 
-    def handle_feedback(self, feedback):
-         new_pose_st = PoseStamped()
-         new_pose_st.pose = feedback.pose
-         new_pose_st.header = feedback.header
-         feedback.header.stamp = rospy.Time(0)
-         if feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
-             if feedback.menu_entry_id == self.GOTO_ENTRY:
-                 self._arm.move_to_pose(new_pose_st)
-             elif feedback.menu_entry_id == self.OPEN_ENTRY:
-                 self._gripper.open()
-                 self._gripper_open = True
-             elif feedback.menu_entry_id == self.CLOSE_ENTRY:
-                 self._gripper.close()
-                 self._gripper_open = False
-             
-             elif feedback.menu_entry_id == self.CREATE_PROGRAM:
-                 self._programming = True
-             elif feedback.menu_entry_id == self.SAVE_POSE:
-                 if self._programming:
-                     self.action_list.append("open" if self._gripper_open else "close")
-                     rospy.loginfo(new_pose_st)
-                     rospy.loginfo(tf.TransformListener().transformPose("gripper_link", new_pose_st)) 
-                     new_pose_st = tf.TransformListener().transformPose(self._frame, new_pose_st)
-                     rospy.loginfo(new_pose_st)
-                     self.action_list.append(new_pose_st)
-             elif feedback.menu_entry_id == self.SAVE_PROGRAM:
-                 if self._programming:
-                     self._programming = False
-                     print self.action_list
-                     # Pickle that shit
-                     pickle.dump(self.action_list, open(self._data_file, "wb"))
-                     self.action_list = []
-             elif feedback.menu_entry_id >= self.BASE_LINK_FRAME:
-                 if feedback.menu_entry_id == self.BASE_LINK_FRAME:
-                     self._frame_marker = None
-                 else:
-                     tag_id = feedback.menu_entry_id - self.TAG_OFFSET
-                     for marker in self._ar_tags:
-                         if marker.id == tag_id:
-                             self._frame = "/ar_marker_" + str(marker.id)
-                             break
-         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-             gripper_control = self._gripper_im.controls[0]
-             self._gripper_im.pose = new_pose_st.pose
-             if self._arm.compute_ik(new_pose_st):
-                 for m in gripper_control.markers:
-                     m.color = ColorRGBA(0, 1, 0, 1)
-             else:
-                 for m in gripper_control.markers:
-                     m.color = ColorRGBA(1, 0, 0, 1)
-         self._im_server.insert(self._gripper_im, feedback_cb=self.handle_feedback)
-         self._im_server.applyChanges()
+class PdbCli:
+    def __init__(self):
+        self._mode = MODE_MAIN  # defines the mode of the CLI application
+        self._pdb = ProgramByDemoHelper()
+        self._current_program = None
+        self._programs = {}
 
+    def run(self):
+        while True:
+            self._handle_command(self._get_command())
 
-    def get_action_list(self):
-        return copy.deepcopy(self.action_list)
+    def _handle_command(self, command):
+        if command[0] == "exit":
+            exit(0)
+
+        if self._mode is MODE_MAIN:
+            if command[0] == "start":
+                self._current_program = Program()
+                self._mode = MODE_PROGRAM
+            elif command[0] == "run":
+                if len(command) < 2:
+                    print "provide program name"
+                    return
+                if command[1] not in self._programs:
+                    print "invalid program"
+                    return
+
+                self._programs[command[1]].run()
+            else:
+                print HELP_MESSAGE
+        elif self._mode is MODE_PROGRAM:
+            if command[0] == "save":
+                print "choose a frame by index:"
+                for i, frame in enumerate(FRAMES):
+                    sys.stdout.write('%d: %s; ' % (i, frame))
+                print ""
+                self._mode = MODE_SELECT_FRAME
+            elif command[0] == "finish":
+                if len(command) < 2:
+                    print "provide program name"
+                    return
+
+                self._programs[command[1]] = self._current_program
+                self._current_program = None
+                self._mode = MODE_MAIN
+            else:
+                print HELP_MESSAGE
+        elif self._mode is MODE_SELECT_FRAME:
+            try:
+                index = int(command[0])
+            except ValueError:
+                print "provide valid index"
+                return
+
+            if 0 <= index < len(FRAMES):
+                self._current_program.save_action(self._pdb.get_action(), index)
+                self._mode = MODE_PROGRAM
+            else:
+                print "illegal frame"
+        else:
+            raise Exception("Illegal Pdb mode")
+
+    def _get_command(self):
+        return raw_input('[%s] > ' % MODES[self._mode]).split(" ")
 
 
 def wait_for_time():
@@ -151,19 +196,12 @@ def wait_for_time():
 
 
 def main():
+    print HELP_MESSAGE
     rospy.init_node('program_by_demo')
-    wait_for_time()
 
-    gripper = fetch_api.Gripper()
-    arm = fetch_api.Arm()
-
-    im_server = InteractiveMarkerServer('gripper_im_server', q_size=2)
-    teleop = ProgramByDemo(arm, gripper, im_server)
-    teleop.start()
-
-    rospy.spin()
+    cli = PdbCli()
+    cli.run()
 
 
-if __name__== "__main__":
+if __name__ == "__main__":
     main()
-
