@@ -215,6 +215,7 @@ add_executable(perception_point_cloud_demo src/point_cloud_demo.cpp)
 set_target_properties(perception_point_cloud_demo PROPERTIES OUTPUT_NAME point_cloud_demo PREFIX "")
 add_dependencies(perception_point_cloud_demo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(perception_point_cloud_demo
+    perception_crop
     ${catkin_LIBRARIES}
 )
 
