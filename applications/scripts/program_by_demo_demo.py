@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 
 import copy
+import json
 
 import actionlib
+import pickle
 from fetch_api import Arm, Gripper, ArmJoints
 import rospy
 from ar_track_alvar_msgs.msg import AlvarMarkers
 from joint_state_reader import JointStateReader
 from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState, QueryControllerStatesAction
+from tf import TransformListener, TransformerROS
+from geometry_msgs.msg import PoseStamped
 
+FIELD_GRIP_STATE = "grip_state"
+
+FIELD_POSITION = "position"
 ''' 
     The save action in current program would save a tuple that consists
     of some sort of frame identifier, the position relative to the frame,
@@ -30,11 +37,6 @@ RVIZ = True
 FILE_NAME = "program_by_demo_saved.pickle"
 DEFAULT_FRAME = "base_link"
 
-HELP_MESSAGE = \
-    """
-    MAIN: start
-    """
-
 HELP_MESSAGE_OLD = """ This program lets you save a list of poses the gripper can take
 for future use. These commands do not manipulate the robot.
 Commands:
@@ -55,6 +57,14 @@ GRIPPER_OPEN = 0
 GRIPPER_CLOSE = 1
 
 
+def export_program(name, program):
+    pickle.dump(program, open("pbd_%s.pickle" % name, 'wb'))
+
+
+def import_program(name):
+    return pickle.load(open("pbd_%s.pickle" % name, 'rb'))
+
+
 class ProgramByDemoHelper:
     """
     Helper class for all robot info.
@@ -70,6 +80,8 @@ class ProgramByDemoHelper:
         self._joint_states_reader = JointStateReader()
         self._controller_client = actionlib.SimpleActionClient('query_controller_states', QueryControllerStatesAction)
         self._gripper = Gripper()
+        self._tfl = TransformListener()
+        self._tfr = TransformerROS()
         self._arm = Arm()
 
     def get_ar_tag_markers(self):
@@ -111,16 +123,30 @@ class ProgramByDemoHelper:
     def open_gripper(self):
         self._gripper.open()
 
-    def get_position(self, frame=None):
+    def get_position(self, frame):
         """
         Returns a map
         - joints -> list of the 7 joints we save
         - gripper -> state of gripper
         """
-        # TODO use frame
+        pose_st = PoseStamped()
+        pose_st.header.frame_id = frame
+        curr_time = rospy.Time(0)
+        # first parameter defines the ORIGIN, second parameter is the FRAME WE WANT TO CONVERT INTO THE NEW ORIGIN
+        self._tfl.waitForTransform(frame, "wrist_roll_link", curr_time, rospy.Duration(1))
+        p, o = self._tfl.lookupTransform(frame, "wrist_roll_link", curr_time)
+        print p
+        print o
+        pose_st.pose.position.x = p[0]
+        pose_st.pose.position.y = p[1]
+        pose_st.pose.position.z = p[2]
+        pose_st.pose.orientation.x = o[0]
+        pose_st.pose.orientation.y = o[1]
+        pose_st.pose.orientation.z = o[2]
+        pose_st.pose.orientation.w = o[3]
         return {
-            "joints": self._joint_states_reader.get_joints(ArmJoints.names()),
-            "gripper": self._get_gripper_state()
+            FIELD_POSITION: pose_st,
+            FIELD_GRIP_STATE: self._get_gripper_state()
         }
 
     def run_program(self, program):
@@ -130,15 +156,18 @@ class ProgramByDemoHelper:
         :return:
         """
         for pos in program:
-            print pos
-            self._arm.move_to_joints(ArmJoints.from_list(pos["joints"]))
-            if pos["gripper"] == GRIPPER_OPEN:
+            saved_pos = pos["position"]
+            # transform back into the base frame when running
+            base_pose = self._tfl.transformPose(DEFAULT_FRAME, saved_pos)
+            print base_pose
+            self._arm.move_to_pose(base_pose)
+            if pos["grip_state"] == GRIPPER_OPEN and self._get_gripper_state() == GRIPPER_CLOSE:
                 self._gripper.open()
-            else:
+            elif pos["grip_state"] == GRIPPER_CLOSE and self._get_gripper_state() == GRIPPER_OPEN:
                 self._gripper.close()
 
     def _get_gripper_state(self):
-        if abs(0.05 - self._joint_states_reader.get_joint('l_gripper_finger_joint')) < 0.005:
+        if abs(0.05 - self._joint_states_reader.get_joint('l_gripper_finger_joint')) < 0.002:
             return GRIPPER_OPEN
         else:
             return GRIPPER_CLOSE
@@ -149,6 +178,11 @@ MODE_PROGRAM = 1
 MODE_SELECT_FRAME = 2
 
 MODES = ["main", "program", "select_frame"]
+COMMANDS = {
+    "main": ["start", "list", "run", "export", "import"],
+    "program": ["save", "closegripper", "opengripper", "len", "finish"],
+    "select_frame": ["<N>"]
+}
 
 
 class PbdCli:
@@ -167,10 +201,19 @@ class PbdCli:
         if command[0] == "exit":
             exit(0)
         elif command[0] == "help":
-            print HELP_MESSAGE
+            print json.dumps(COMMANDS)
             return
 
         if self._mode is MODE_MAIN:
+            def two_args(command):
+                if len(command) < 2:
+                    print "provide program name"
+                    return False
+                if command[1] not in self._programs:
+                    print "invalid program"
+                    return False
+                return True
+
             if command[0] == "start":
                 self._pbd.relax_arm()
                 self._mode = MODE_PROGRAM
@@ -178,15 +221,22 @@ class PbdCli:
                 for name in self._programs:
                     print name
             elif command[0] == "run":
-                if len(command) < 2:
-                    print "provide program name"
-                    return
-                if command[1] not in self._programs:
-                    print "invalid program"
+                if not two_args(command):
                     return
 
                 print "running program %s" % command[1]
                 self._pbd.run_program(self._programs[command[1]])
+            elif command[0] == "export":
+                if not two_args(command):
+                    return
+                print "exporting program %s to disk" % command[1]
+                print self._programs[command[1]]
+                export_program(command[1], self._programs[command[1]])
+            elif command[0] == "import":
+                if len(command) < 2:
+                    print "provide program name"
+                    return
+                self._programs[command[1]] = import_program(command[1])
             else:
                 print "bad command"
         elif self._mode is MODE_PROGRAM:
@@ -221,7 +271,10 @@ class PbdCli:
 
             # Special case for base link
             if -1 <= index < len(self._current_ar_tags):
-                self._current_program.append(self._pbd.get_position(DEFAULT_FRAME if index == -1 else self._current_ar_tags[index]))
+                frame_string = DEFAULT_FRAME
+                if index >= 0:
+                    frame_string = "ar_marker_%d" % self._current_ar_tags[index].id
+                self._current_program.append(self._pbd.get_position(frame_string))
                 self._mode = MODE_PROGRAM
             else:
                 print "illegal frame"
@@ -244,12 +297,12 @@ class PbdCli:
 
 
 def wait_for_time():
-    while rospy.Time.now().to_sec() == 0:
+    while rospy.Time().now().to_sec() == 0:
         pass
 
 
 def main():
-    print HELP_MESSAGE
+    print json.dumps(COMMANDS)
     rospy.init_node('program_by_demo')
 
     cli = PbdCli()
