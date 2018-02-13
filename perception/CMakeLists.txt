@@ -113,6 +113,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES
       perception_crop
+      perception_segmentation
 )
 
 ###########
@@ -216,9 +217,19 @@ set_target_properties(perception_point_cloud_demo PROPERTIES OUTPUT_NAME point_c
 add_dependencies(perception_point_cloud_demo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(perception_point_cloud_demo
     perception_crop
+    perception_segmentation
     ${catkin_LIBRARIES}
 )
 
 add_library(perception_crop src/crop.cpp)
 add_dependencies(perception_crop ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(perception_crop ${catkin_LIBRARIES})
+
+
+add_library(perception_segmentation src/segmentation.cpp)
+add_dependencies(perception_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(perception_segmentation ${catkin_LIBRARIES})
+
+
+
+
