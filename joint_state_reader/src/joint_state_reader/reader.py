@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 
 import rospy
 from sensor_msgs.msg import JointState

@@ -26,7 +26,7 @@ class Gripper(object):
         goal.command.position = OPENED_POS
         goal.command.max_effort = self.MIN_EFFORT
         self.client.send_goal(goal)
-        print("goal sent")
+        #print("goal sent")
         self.client.wait_for_result(rospy.Duration.from_sec(5.0))
 
     def close(self, max_effort=MAX_EFFORT):

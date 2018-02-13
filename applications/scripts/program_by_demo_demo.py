@@ -1,18 +1,41 @@
 #!/usr/bin/env python
 
-import sys
 import copy
 
+import actionlib
+from fetch_api import Arm, Gripper, ArmJoints
 import rospy
 from ar_track_alvar_msgs.msg import AlvarMarkers
-from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState, QueryControllerStatesAction
-import actionlib
-import fetch_api
 from joint_state_reader import JointStateReader
+from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState, QueryControllerStatesAction
 
+''' 
+    The save action in current program would save a tuple that consists
+    of some sort of frame identifier, the position relative to the frame,
+    and the open/close state of the gripper. Good practice in use would be
+    to save right after closing a gripper even if position doesn't change
+    so that the ordering of arm movement and gripper movement is preserved.
+
+    One thing I changed, but you can feel free to revert is that I made
+    getting the frames part of the pbd helper. This seemed to make sense because
+    we dynamically want to generate ar tag's. A potential change you might have
+    to make because of this is that you'd have to save the action in the same
+    iteration of the while loop as when you decide which frame to save in (currently
+    you do it in the next iteration when the program mode changes), just in case
+    the arm's state changes between iterations and the result from get_ar_tag_markers()
+    is different from the previous iteration's.
+'''
+
+RVIZ = True
 FILE_NAME = "program_by_demo_saved.pickle"
+DEFAULT_FRAME = "base_link"
 
-HELP_MESSAGE = """ This program lets you save a list of poses the gripper can take
+HELP_MESSAGE = \
+    """
+    MAIN: start
+    """
+
+HELP_MESSAGE_OLD = """ This program lets you save a list of poses the gripper can take
 for future use. These commands do not manipulate the robot.
 Commands:
     start: If a programmed pose is not currently being created, start creation of one
@@ -27,6 +50,9 @@ Commands:
     exit: quits the program
     ***<program_name> cannot have spaces***
 """
+
+GRIPPER_OPEN = 0
+GRIPPER_CLOSE = 1
 
 
 class ProgramByDemoHelper:
@@ -43,29 +69,16 @@ class ProgramByDemoHelper:
         self._ar_sub = rospy.Subscriber('/ar_pose_marker', AlvarMarkers, self._ar_feedback)
         self._joint_states_reader = JointStateReader()
         self._controller_client = actionlib.SimpleActionClient('query_controller_states', QueryControllerStatesAction)
-        self._gripper = fetch_api.Gripper()
+        self._gripper = Gripper()
+        self._arm = Arm()
 
     def get_ar_tag_markers(self):
         return copy.deepcopy(self._ar_tags)
-
-    def get_default_frame(self):
-        return "base_link"
-
-    def get_choose_frame_text(self):
-        choose_frame_text = "choose a frame by index:\n"
-        choose_frame_text += ("-1: %s; " % self.get_default_frame())
-        for i, tag in enumerate(self._ar_tags):
-            choose_frame_text += ('%d: %s; ' % (i, tag.id))
-
-        return choose_frame_text
 
     # CALLBACKS
 
     def _ar_feedback(self, msg):
         self._ar_tags = msg.markers
-
-    def _arm_feedback(self, msg):
-        self._joints = msg
 
     # ACTIONS
 
@@ -74,6 +87,9 @@ class ProgramByDemoHelper:
         Helper function for sending an arm goal
         :param state: RUNNING or STOPPED
         """
+        if RVIZ:
+            return
+
         goal = QueryControllerStatesGoal()
         state = ControllerState()
         state.name = 'arm_controller/follow_joint_trajectory'
@@ -90,29 +106,42 @@ class ProgramByDemoHelper:
         self._send_arm_goal(ControllerState.RUNNING)
 
     def close_gripper(self):
-        gripper.close(gripper.MAX_EFFORT)
+        self._gripper.close(self._gripper.MAX_EFFORT)
 
     def open_gripper(self):
-        gripper.open()
+        self._gripper.open()
 
+    def get_position(self, frame=None):
+        """
+        Returns a map
+        - joints -> list of the 7 joints we save
+        - gripper -> state of gripper
+        """
+        # TODO use frame
+        return {
+            "joints": self._joint_states_reader.get_joints(ArmJoints.names()),
+            "gripper": self._get_gripper_state()
+        }
 
-class Program:
-    """
-    This defines a program that the user can define by manually setting the end-effector positions
-    and saving them with the command-line application.
-    """
-    def __init__(self):
-        self._creating = False
-        self._poses = []
+    def run_program(self, program):
+        """
+        Runs the given program
+        :param program: list of positions
+        :return:
+        """
+        for pos in program:
+            print pos
+            self._arm.move_to_joints(ArmJoints.from_list(pos["joints"]))
+            if pos["gripper"] == GRIPPER_OPEN:
+                self._gripper.open()
+            else:
+                self._gripper.close()
 
-    def save_pose(self, pose, gripper_state, frame_index):
-        self._poses.append({"pose": None, "gripper_state": gripper_state, "frame": FRAMES[frame_index]})
-
-    def get_poses(self):
-        return copy.deepcopy(self._poses)
-
-    def run(self):
-        pass
+    def _get_gripper_state(self):
+        if abs(0.05 - self._joint_states_reader.get_joint('l_gripper_finger_joint')) < 0.005:
+            return GRIPPER_OPEN
+        else:
+            return GRIPPER_CLOSE
 
 
 MODE_MAIN = 0
@@ -121,12 +150,14 @@ MODE_SELECT_FRAME = 2
 
 MODES = ["main", "program", "select_frame"]
 
+
 class PbdCli:
     def __init__(self):
         self._mode = MODE_MAIN  # defines the mode of the CLI application
         self._pbd = ProgramByDemoHelper()
-        self._current_program = None
+        self._current_program = []
         self._programs = {}
+        self._current_ar_tags = None
 
     def run(self):
         while True:
@@ -135,12 +166,17 @@ class PbdCli:
     def _handle_command(self, command):
         if command[0] == "exit":
             exit(0)
+        elif command[0] == "help":
+            print HELP_MESSAGE
+            return
 
         if self._mode is MODE_MAIN:
             if command[0] == "start":
-                self._current_program = Program()
                 self._pbd.relax_arm()
                 self._mode = MODE_PROGRAM
+            elif command[0] == "list":
+                for name in self._programs:
+                    print name
             elif command[0] == "run":
                 if len(command) < 2:
                     print "provide program name"
@@ -149,57 +185,43 @@ class PbdCli:
                     print "invalid program"
                     return
 
-                self._programs[command[1]].run()
+                print "running program %s" % command[1]
+                self._pbd.run_program(self._programs[command[1]])
             else:
-                print HELP_MESSAGE
+                print "bad command"
         elif self._mode is MODE_PROGRAM:
             if command[0] == "save":
-                print self._pbd.get_choose_frame_text()
+                # Save the current ar tags so that there's no inconsistency in the tag
+                self._current_ar_tags = self._pbd.get_ar_tag_markers()
+                self._print_choose_frame_text()
                 self._mode = MODE_SELECT_FRAME
             elif command[0] == "closegripper":
                 self._pbd.close_gripper()
             elif command[0] == "opengripper":
                 self._pbd.open_gripper()
+            elif command[0] == "len":
+                print len(self._current_program)
             elif command[0] == "finish":
                 if len(command) < 2:
                     print "provide program name"
                     return
 
                 self._programs[command[1]] = self._current_program
-                self._current_program = None
+                self._current_program = []
                 self._pbd.start_arm()
                 self._mode = MODE_MAIN
             else:
-                print HELP_MESSAGE
+                print "bad command"
         elif self._mode is MODE_SELECT_FRAME:
             try:
                 index = int(command[0])
             except ValueError:
                 print "provide valid index"
                 return
-            ''' Sarang: so what I've been thinking is that pbd's get action would do
-                all the heavy lifting and return a tuple that hold's the pose data
-                and the gripper open/close state respective to the frame passed in
 
-                The save action in current program would save a tuple that consists
-                of some sort of frame identifier, the position relative to the frame,
-                and the open/close state of the gripper. Good practice in use would be
-                to save right after closing a gripper even if position doesn't change
-                so that the ordering of arm movement and gripper movement is preserved.
-
-                One thing I changed, but you can feel free to revert is that I made
-                getting the frames part of the pbd helper. This seemed to make sense because
-                we dynamically want to generate ar tag's. A potential change you might have
-                to make because of this is that you'd have to save the action in the same
-                iteration of the while loop as when you decide which frame to save in (currently
-                you do it in the next iteration when the program mode changes), just in case
-                the arm's state changes between iterations and the result from get_ar_tag_markers()
-                is different from the previous iteration's.
-            '''
-            if index == -1:
-                self._current_program.save_pose(self._pbd.get_action("base_link"))
-            elif 0 <= index < len(FRAMES):
-                self._current_program.save_pose(self._pbd.get_action())
+            # Special case for base link
+            if -1 <= index < len(self._current_ar_tags):
+                self._current_program.append(self._pbd.get_position(DEFAULT_FRAME if index == -1 else self._current_ar_tags[index]))
                 self._mode = MODE_PROGRAM
             else:
                 print "illegal frame"
@@ -208,6 +230,17 @@ class PbdCli:
 
     def _get_command(self):
         return raw_input('[%s] > ' % MODES[self._mode]).split(" ")
+
+    def _print_choose_frame_text(self):
+        """
+        Prints the helper text to choose a frame
+        """
+        choose_frame_text = "choose a frame by index:\n"
+        choose_frame_text += ("-1: %s; " % DEFAULT_FRAME)
+        for i, tag in enumerate(self._current_ar_tags):
+            choose_frame_text += ('%d: %s; ' % (i, tag.id))
+
+        print choose_frame_text
 
 
 def wait_for_time():
