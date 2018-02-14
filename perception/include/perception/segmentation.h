@@ -1,3 +1,4 @@
+
 #include "pcl/PointIndices.h"
 #include "pcl/point_cloud.h"
 #include "pcl/point_types.h"
@@ -16,7 +17,7 @@ namespace perception {
   //  indices: The indices of points in the point cloud that correspond to the
   //    surface. Empty if no surface was found.
   void SegmentSurface(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-                    pcl::PointIndices::Ptr indices);
+                    pcl::PointIndices::Ptr indices, const ros::Publisher& surface_points_pub, const ros::Publisher& marker_pub, const ros::Publisher& above_surface_pub);
 
   // Computes the axis-aligned bounding box of a point cloud.
   //
@@ -29,9 +30,11 @@ namespace perception {
                                geometry_msgs::Pose* pose,
                                geometry_msgs::Vector3* dimensions);
 
+
   void SegmentSurfaceObjects(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
                            pcl::PointIndices::Ptr surface_indices,
-                           std::vector<pcl::PointIndices>* object_indices);
+                           std::vector<pcl::PointIndices>* object_indices, const ros::Publisher& above_surface_pub, const ros::Publisher& marker_pub);
+
 
   class Segmenter {
    public:
@@ -40,7 +43,7 @@ namespace perception {
 
    private:
     ros::Publisher surface_points_pub_;
-    ros::Publisher above_surface_pub_;
     ros::Publisher marker_pub_;
+    ros::Publisher above_surface_pub_;
   };
-}  // namespace perception
+} // namespace perception
