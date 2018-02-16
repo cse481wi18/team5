@@ -142,7 +142,7 @@ namespace perception {
     marker_pub_.publish(table_marker);
 
     std::vector<pcl::PointIndices> object_indices;
-    SegmentSurfaceObjects(downsampled_cloud, indices2, &object_indices, coeff);
+    SegmentSurfaceObjects(subset_cloud, indices2, &object_indices, coeff);
   }
 
   void Segmenter::GetAxisAlignedBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
@@ -232,7 +232,7 @@ namespace perception {
       PointCloudC::Ptr extract_out(new PointCloudC);
       shape_msgs::SolidPrimitive shape;
       geometry_msgs::Pose object_pose;
-      simple_grasping::extractShape(*object_cloud, coeff, *extract_out, shape, object_pose);
+      perception::FitBox(*object_cloud, coeff, *extract_out, shape, object_pose);
 
       object_marker.pose = object_pose;
       if (shape_msgs::SolidPrimitive::BOX == shape.type) {
