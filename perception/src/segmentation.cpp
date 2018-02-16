@@ -1,4 +1,4 @@
-
+#include "perception/box_fitter.h"
 #include "perception/segmentation.h"
 #include "pcl/PointIndices.h"
 #include "pcl/point_cloud.h"
@@ -70,8 +70,8 @@ namespace perception {
     
     // coeff contains the coefficients of the plane: ax + by + cz + d = 0
     seg.segment(indices_internal, *coeff);
-    simple_grasping::extractShape(*cropped_cloud, coeff, *extract_out, shape, table_pose);
-    
+    //simple_grasping::extractShape(*cropped_cloud, coeff, *extract_out, shape, table_pose);
+    perception::FitBox(*cropped_cloud, coeff, *extract_out, shape, table_pose);
     double distance_above_plane;
     ros::param::param("distance_above_plane", distance_above_plane, 0.005);
 
@@ -122,6 +122,9 @@ namespace perception {
         indices2->indices.push_back(i);
       }
     }
+
+    //simple_grasping::extractShape(*subset_cloud, coeff, *extract_out, shape, table_pose);
+    perception::FitBox(*subset_cloud, coeff, *extract_out, shape, table_pose);
 
     visualization_msgs::Marker table_marker;
     table_marker.ns = "table";
