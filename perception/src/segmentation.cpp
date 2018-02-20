@@ -102,7 +102,7 @@ namespace perception {
 
     sensor_msgs::PointCloud2 msg_out;
     pcl::toROSMsg(*subset_cloud, msg_out);
-    surface_points_pub_.publish(msg_out);
+    if (surface_points_pub_) surface_points_pub_->publish(msg_out);
 
     extract.setNegative(true); //added for 31
     extract.filter(*subset_cloud); //added for 31
@@ -141,7 +141,7 @@ namespace perception {
     table_marker.color.r = 1;
     table_marker.color.a = 0.8;
     table_marker.pose.position.z -= table_marker.scale.z;
-    marker_pub_.publish(table_marker);
+    if (marker_pub_) marker_pub_->publish(table_marker);
 
     //std::vector<pcl::PointIndices> object_indices;
     SegmentSurfaceObjects(subset_cloud, indices2, objects, coeff); // TO BE CHANGED
@@ -213,7 +213,7 @@ namespace perception {
 
     sensor_msgs::PointCloud2 msg_out;
     pcl::toROSMsg(*cloud, msg_out);
-    above_surface_pub_.publish(msg_out);
+    if (above_surface_pub_) above_surface_pub_->publish(msg_out);
 
 
     for (size_t i = 0; i < object_indices.size(); ++i) {
@@ -275,7 +275,7 @@ namespace perception {
     
       //object_marker.color.g = 1;
       //object_marker.color.a = 0.3;
-      //marker_pub_.publish(object_marker);
+      //marker_pub_->publish(object_marker);
     }
 
   }
@@ -287,7 +287,7 @@ namespace perception {
     SegmentSurface(cloud, table_inliers, coeff, objects);     
   }
 
-  Segmenter::Segmenter(const ros::Publisher& surface_points_pub, const ros::Publisher& marker_pub, const ros::Publisher& above_surface_pub) : 
+  Segmenter::Segmenter(ros::Publisher *surface_points_pub, ros::Publisher *marker_pub, ros::Publisher *above_surface_pub) : 
     surface_points_pub_(surface_points_pub), marker_pub_(marker_pub), above_surface_pub_(above_surface_pub)  {}
 
   void Segmenter::Callback(const sensor_msgs::PointCloud2& msg) {
@@ -320,7 +320,7 @@ namespace perception {
       object_marker.scale = object.dimensions;
       object_marker.color.g = 1;
       object_marker.color.a = 0.3;
-      marker_pub_.publish(object_marker);
+      if (marker_pub_) marker_pub_->publish(object_marker);
     }
 
   }

@@ -12,9 +12,9 @@
 namespace perception {
   class Segmenter {
     public:
-      Segmenter(const ros::Publisher& surface_points_pub, 
-                const ros::Publisher& marker_pub, 
-                const ros::Publisher& above_surface_pub);
+      Segmenter(ros::Publisher *surface_points_pub, 
+                ros::Publisher *marker_pub, 
+                ros::Publisher *above_surface_pub);
 
       void Callback(const sensor_msgs::PointCloud2& msg);
 
@@ -61,8 +61,8 @@ namespace perception {
       void SegmentTabletopScene(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
                                 std::vector<Object>* objects);
     private:
-      ros::Publisher surface_points_pub_;
-      ros::Publisher marker_pub_;
-      ros::Publisher above_surface_pub_;
+      ros::Publisher *surface_points_pub_;
+      ros::Publisher *marker_pub_;
+      ros::Publisher *above_surface_pub_;
   };
 } // namespace perception
