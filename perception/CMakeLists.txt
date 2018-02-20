@@ -122,6 +122,7 @@ catkin_package(
     perception_box_fitter
     perception_crop
     perception_segmentation
+    perception_feature_extraction
   CATKIN_DEPENDS
     geometry_msgs
     pcl_ros
@@ -164,6 +165,11 @@ add_library(perception_segmentation src/segmentation.cpp)
 add_dependencies(perception_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(perception_segmentation ${catkin_LIBRARIES})
 
+add_library(perception_feature_extraction src/feature_extraction.cpp)
+add_dependencies(perception_feature_extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(perception_feature_extraction ${catkin_LIBRARIES})
+
+
 # Declare executables
 add_executable(perception_save_cloud_main src/save_cloud_main.cpp)
 set_target_properties(perception_save_cloud_main PROPERTIES OUTPUT_NAME save_cloud PREFIX "")
@@ -179,6 +185,17 @@ target_link_libraries(perception_point_cloud_demo
     perception_crop
     perception_segmentation
     perception_box_fitter
+    ${catkin_LIBRARIES}
+)
+
+add_executable(perception_extract_features_main src/extract_features_main.cpp)
+set_target_properties(perception_extract_features_main PROPERTIES OUTPUT_NAME extract_features_main PREFIX "")
+add_dependencies(perception_extract_features_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(perception_extract_features_main
+    perception_crop
+    perception_segmentation
+    perception_box_fitter
+    perception_feature_extraction
     ${catkin_LIBRARIES}
 )
 

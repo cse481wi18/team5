@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
   ros::Publisher above_table_pub =
       nh.advertise<sensor_msgs::PointCloud2>("above_table_cloud", 1, true); 
 
-  perception::Segmenter segmenter(table_pub, marker_pub, above_table_pub);
+  perception::Segmenter segmenter(&table_pub, &marker_pub, &above_table_pub);
 
   ros::Subscriber sub =
       nh.subscribe("cloud_in", 1, &perception::Segmenter::Callback, &segmenter);
