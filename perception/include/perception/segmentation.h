@@ -6,6 +6,7 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Vector3.h"
+#include "perception/object.h"
 
 
 namespace perception {
@@ -26,7 +27,8 @@ namespace perception {
       //    surface. Empty if no surface was found.
       void SegmentSurface(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
                           pcl::PointIndices::Ptr indices,
-                          pcl::ModelCoefficients::Ptr coeff);
+                          pcl::ModelCoefficients::Ptr coeff,
+                          std::vector<Object>* objects);
 
       // Computes the axis-aligned bounding box of a point cloud.
       //
@@ -48,8 +50,16 @@ namespace perception {
       //  object_indicies:
       void SegmentSurfaceObjects(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
                                 pcl::PointIndices::Ptr surface_indices,
-                                std::vector<pcl::PointIndices>* object_indices,
+                                std::vector<Object>* objects,
                                 pcl::ModelCoefficients::Ptr coeff);
+
+      // Does a complete tabletop segmentation pipeline.
+      //
+      // Args:
+      //  cloud: The point cloud with the surface and the objects above it.
+      //  objects: The output objects.
+      void SegmentTabletopScene(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+                                std::vector<Object>* objects);
     private:
       ros::Publisher surface_points_pub_;
       ros::Publisher marker_pub_;
