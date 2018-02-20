@@ -86,7 +86,13 @@ int main(int argc, char** argv) {
   perception_msgs::ObjectFeatures features;
   features.object_name = label;
   //perception::ExtractSizeFeatures(object, &features);
-  perception::ExtractColorFeatures(object, &features);
+
+  //if(label == "galaxy_nexus") {
+    //ROS_INFO("x: %f", features.values[0]);
+    //ROS_INFO("y: %f", features.values[1]);
+    //ROS_INFO("z: %f", features.values[2]);
+  //}
+  perception::ExtractFeatures(object, &features);
 
   rosbag::Bag bag_out;
   bag_out.open(label + "_label.bag", rosbag::bagmode::Write);

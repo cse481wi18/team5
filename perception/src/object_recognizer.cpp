@@ -73,26 +73,39 @@ namespace perception
     object_dimensions.push_back(dimensions.z);
     object_dimensions.push_back(dimensions.y);
     object_dimensions.push_back(dimensions.x);
+    perception_msgs::ObjectFeatures features;
+
+    perception::ExtractFeatures(object, &features);
+    //perception::ExtractSizeFeatures(object, &features);
+
+    //if(object.name == "galaxy_nexus") {
+      /*ROS_INFO("x: %f", features.values[0]);
+      ROS_INFO("y: %f", features.values[1]);
+      ROS_INFO("z: %f", features.values[2]);*/
+      //ROS_INFO("name: %s", object.name);
+   // }
 
     double min_distance = std::numeric_limits<double>::max();
     double second_min_distance = std::numeric_limits<double>::max();
     for (size_t i = 0; i < dataset_.size(); ++i)
     {
       // TODO: compare the features of the input object to the features of the current dataset object.
-      double distance = EuclideanDistance(object_dimensions, dataset_[i].values);
+      double distance = EuclideanDistance(features.values/*object_dimensions*/, dataset_[i].values);
 
       if (distance < min_distance)
       {
         second_min_distance = min_distance;
         min_distance = distance;
         *name = dataset_[i].object_name;
+        
       }
       else if (distance < second_min_distance)
       {
         second_min_distance = distance;
       }
     }
-
+    //ROS_INFO("name: %s, x: %f, y: %f, z: %f", (*name).c_str(),
+    //features.values[0], features.values[1], features.values[2]);
     // Confidence is based on the distance to the two nearest results.
     *confidence = 1 - min_distance / (min_distance + second_min_distance);
   }
