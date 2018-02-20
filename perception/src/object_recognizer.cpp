@@ -62,9 +62,9 @@ void ObjectRecognizer::Recognize(const Object &object, std::string *name,
   // TODO: extract features from the object
   geometry_msgs::Vector3 dimensions = object.dimensions;
   std::vector<double> object_dimensions;
-  object_dimensions.push_back(dimensions.x);
-  object_dimensions.push_back(dimensions.y);
   object_dimensions.push_back(dimensions.z);
+  object_dimensions.push_back(dimensions.y);
+  object_dimensions.push_back(dimensions.x);
 
   double min_distance = std::numeric_limits<double>::max();
   double second_min_distance = std::numeric_limits<double>::max();
