@@ -15,28 +15,37 @@
 using boost::filesystem::directory_iterator;
 using perception_msgs::ObjectFeatures;
 
-namespace perception {
-namespace {
-double EuclideanDistance(const std::vector<double>& v1,
-                         const std::vector<double>& v2) {
-  // TODO: implement
+namespace perception
+{
+namespace
+{
+// This does the 3D Euclidean distance of two 3-dimensional vectors
+double EuclideanDistance(const std::vector<double> &v1,
+                         const std::vector<double> &v2)
+{
+  return sqrt(pow(v1[0] - v2[0], 2) + pow(v1[1] - v2[1], 2) + pow(v1[2] - v2[2], 2));
 }
 }
 
-void LoadData(const std::string& data_dir,
-              std::vector<perception_msgs::ObjectFeatures>* dataset) {
+void LoadData(const std::string &data_dir,
+              std::vector<perception_msgs::ObjectFeatures> *dataset)
+{
   directory_iterator end;
-  for (directory_iterator file_it(data_dir); file_it != end; ++file_it) {
-    if (boost::filesystem::is_regular_file(file_it->path())) {
+  for (directory_iterator file_it(data_dir); file_it != end; ++file_it)
+  {
+    if (boost::filesystem::is_regular_file(file_it->path()))
+    {
       rosbag::Bag bag;
       bag.open(file_it->path().string(), rosbag::bagmode::Read);
       std::vector<std::string> topics;
       topics.push_back("object_features");
       rosbag::View view(bag, rosbag::TopicQuery(topics));
 
-      for (rosbag::View::iterator it = view.begin(); it != view.end(); ++it) {
+      for (rosbag::View::iterator it = view.begin(); it != view.end(); ++it)
+      {
         ObjectFeatures::ConstPtr fp = it->instantiate<ObjectFeatures>();
-        if (fp != NULL) {
+        if (fp != NULL)
+        {
           dataset->push_back(*fp);
         }
       }
@@ -44,22 +53,34 @@ void LoadData(const std::string& data_dir,
   }
 }
 
-ObjectRecognizer::ObjectRecognizer(const std::vector<ObjectFeatures>& dataset)
+ObjectRecognizer::ObjectRecognizer(const std::vector<ObjectFeatures> &dataset)
     : dataset_(dataset) {}
 
-void ObjectRecognizer::Recognize(const Object& object, std::string* name,
-                                 double* confidence) {
+void ObjectRecognizer::Recognize(const Object &object, std::string *name,
+                                 double *confidence)
+{
   // TODO: extract features from the object
+  geometry_msgs::Vector3 dimensions = object.dimensions;
+  std::vector<double> object_dimensions;
+  object_dimensions.push_back(dimensions.x);
+  object_dimensions.push_back(dimensions.y);
+  object_dimensions.push_back(dimensions.z);
 
   double min_distance = std::numeric_limits<double>::max();
   double second_min_distance = std::numeric_limits<double>::max();
-  for (size_t i = 0; i < dataset_.size(); ++i) {
+  for (size_t i = 0; i < dataset_.size(); ++i)
+  {
     // TODO: compare the features of the input object to the features of the current dataset object.
-    if (distance < min_distance) {
+    double distance = EuclideanDistance(object_dimensions, dataset_[i].values);
+
+    if (distance < min_distance)
+    {
       second_min_distance = min_distance;
       min_distance = distance;
       *name = dataset_[i].object_name;
-    } else if (distance < second_min_distance) {
+    }
+    else if (distance < second_min_distance)
+    {
       second_min_distance = distance;
     }
   }
@@ -67,4 +88,4 @@ void ObjectRecognizer::Recognize(const Object& object, std::string* name,
   // Confidence is based on the distance to the two nearest results.
   *confidence = 1 - min_distance / (min_distance + second_min_distance);
 }
-}  // namespace perception
+} // namespace perception

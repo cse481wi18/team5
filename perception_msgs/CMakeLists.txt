@@ -101,7 +101,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES perception_msgs
-  CATKIN_DEPENDS message_generation 
+  CATKIN_DEPENDS message_runtime 
 #  DEPENDS system_lib
 )
 
