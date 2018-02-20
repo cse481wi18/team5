@@ -192,10 +192,10 @@ target_link_libraries(perception_point_cloud_demo
     ${catkin_LIBRARIES}
 )
 
-add_executable(perception_extract_features_main src/extract_features_main.cpp)
-set_target_properties(perception_extract_features_main PROPERTIES OUTPUT_NAME extract_features_main PREFIX "")
-add_dependencies(perception_extract_features_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(perception_extract_features_main
+add_executable(perception_extract_features src/extract_features.cpp)
+set_target_properties(perception_extract_features PROPERTIES OUTPUT_NAME extract_features PREFIX "")
+add_dependencies(perception_extract_features ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(perception_extract_features
     perception_crop
     perception_segmentation
     perception_box_fitter
