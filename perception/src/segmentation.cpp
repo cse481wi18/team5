@@ -28,13 +28,13 @@ typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloudC;
 namespace perception {
 
   void Segmenter::SegmentSurface(PointCloudC::Ptr cloud,
-                                 pcl::PointIndices::Ptr indices,
-                                 pcl::ModelCoefficients::Ptr coeff,
-                                 std::vector<Object>* objects) {
+      pcl::PointIndices::Ptr indices,
+      pcl::ModelCoefficients::Ptr coeff,
+      std::vector<Object>* objects) {
     ROS_INFO("Got point cloud with %ld points", cloud->size());
 
     PointCloudC::Ptr cropped_cloud(new PointCloudC());
-    
+
     double min_x, min_y, min_z, max_x, max_y, max_z;
     ros::param::param("crop_min_x", min_x, 0.3);
     ros::param::param("crop_min_y", min_y, -1.0);
@@ -42,7 +42,7 @@ namespace perception {
     ros::param::param("crop_max_x", max_x, 0.9);
     ros::param::param("crop_max_y", max_y, 1.0);
     ros::param::param("crop_max_z", max_z, 1.5);
-    
+
     Eigen::Vector4f min_pt(min_x, min_y, min_z, 1);
     Eigen::Vector4f max_pt(max_x, max_y, max_z, 1);
     pcl::CropBox<PointC> crop;
@@ -50,7 +50,7 @@ namespace perception {
     crop.setMin(min_pt);
     crop.setMax(max_pt);
     crop.filter(*cropped_cloud);
-    
+
     pcl::PointIndices indices_internal;
     pcl::SACSegmentation<PointC> seg;
     seg.setOptimizeCoefficients(true);
@@ -69,7 +69,7 @@ namespace perception {
     PointCloudC::Ptr extract_out(new PointCloudC);
     shape_msgs::SolidPrimitive shape;
     geometry_msgs::Pose table_pose;
-    
+
     // coeff contains the coefficients of the plane: ax + by + cz + d = 0
     seg.segment(indices_internal, *coeff);
     //simple_grasping::extractShape(*cropped_cloud, coeff, *extract_out, shape, table_pose);
@@ -81,13 +81,13 @@ namespace perception {
     for (size_t i = 0; i < cropped_cloud->size(); ++i) {
       const PointC& pt = cropped_cloud->points[i];
       float val = coeff->values[0] * pt.x + coeff->values[1] * pt.y +
-                  coeff->values[2] * pt.z + coeff->values[3];
+        coeff->values[2] * pt.z + coeff->values[3];
       if (val <= distance_above_plane) {
         indices->indices.push_back(i);
       }
     }
     //*indices = indices_internal;
-  
+
     if (indices->indices.size() == 0) {
       ROS_ERROR("Unable to find surface.");
       return;
@@ -119,7 +119,7 @@ namespace perception {
     for (size_t i = 0; i < downsampled_cloud->size(); ++i) {
       const PointC& pt = downsampled_cloud->points[i];
       float val = coeff->values[0] * pt.x + coeff->values[1] * pt.y +
-                  coeff->values[2] * pt.z + coeff->values[3];
+        coeff->values[2] * pt.z + coeff->values[3];
       if (val <= distance_above_plane) {
         indices2->indices.push_back(i);
       }
@@ -148,8 +148,8 @@ namespace perception {
   }
 
   void Segmenter::GetAxisAlignedBoundingBox(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-                                            geometry_msgs::Pose* pose,
-                                            geometry_msgs::Vector3* dimensions) {
+      geometry_msgs::Pose* pose,
+      geometry_msgs::Vector3* dimensions) {
     PointC min_pcl;
     PointC max_pcl;
     pcl::getMinMax3D<PointC>(*cloud, min_pcl, max_pcl);
@@ -161,14 +161,14 @@ namespace perception {
     dimensions->x = max_pcl.x - min_pcl.z;
     dimensions->y = max_pcl.y - min_pcl.y;
     dimensions->z = max_pcl.z - min_pcl.z;
-    
+
   }
 
   void Segmenter::SegmentSurfaceObjects(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-                             pcl::PointIndices::Ptr surface_indices,
-                             std::vector<Object>* objects,
-                             pcl::ModelCoefficients::Ptr coeff) {
-    
+      pcl::PointIndices::Ptr surface_indices,
+      std::vector<Object>* objects,
+      pcl::ModelCoefficients::Ptr coeff) {
+
     std::vector<pcl::PointIndices> object_indices; // new line here
     pcl::ExtractIndices<PointC> extract;
     pcl::PointIndices::Ptr above_surface_indices(new pcl::PointIndices());
@@ -196,18 +196,18 @@ namespace perception {
     // Find the size of the smallest and the largest object,
     // where size = number of points in the cluster
     /*size_t min_size = std::numeric_limits<size_t>::max();
-    size_t max_size = std::numeric_limits<size_t>::min();
+      size_t max_size = std::numeric_limits<size_t>::min();
 
-    size_t min, max = (*object_indices)[0].indices.size();
-    for (size_t i = 1; i < object_indices->size(); ++i) {
+      size_t min, max = (*object_indices)[0].indices.size();
+      for (size_t i = 1; i < object_indices->size(); ++i) {
       size_t curr_sz = (*object_indices)[i].indices.size();
       if(curr_sz > max) {
-        max = curr_sz;
+      max = curr_sz;
       }
       if(curr_sz < min) {
-        min = curr_sz;
+      min = curr_sz;
       }
-    }*/
+      }*/
 
     ROS_INFO("There are %ld points above the table", above_surface_indices->indices.size());
 
@@ -230,32 +230,32 @@ namespace perception {
       pcl::PointIndices::Ptr indices(new pcl::PointIndices);
       *indices = object_indices[i];
       PointCloudC::Ptr object_cloud(new PointCloudC());
-      
+
       extract.setIndices(indices);
       extract.setNegative(false);
       extract.filter(*object_cloud);
 
-      
 
-       
+
+
       // Publish a bounding box around it.
       /*visualization_msgs::Marker object_marker;
-      object_marker.ns = "objects";
-      object_marker.id = i;
-      object_marker.header.frame_id = "base_link";
-      object_marker.type = visualization_msgs::Marker::CUBE;*/
+        object_marker.ns = "objects";
+        object_marker.id = i;
+        object_marker.header.frame_id = "base_link";
+        object_marker.type = visualization_msgs::Marker::CUBE;*/
 
       PointCloudC::Ptr extract_out(new PointCloudC);
       shape_msgs::SolidPrimitive shape;
       geometry_msgs::Pose object_pose;
       perception::FitBox(*object_cloud, coeff, *extract_out, shape, object_pose);
-    
+
       // new code using object vector
 
       Object obj;
       obj.cloud = object_cloud;
       obj.pose = object_pose;
-      
+
 
 
       //object_marker.pose = object_pose;
@@ -265,14 +265,14 @@ namespace perception {
         obj_dim.y = shape.dimensions[1];
         obj_dim.z = shape.dimensions[2];
         /*object_marker.scale.x = shape.dimensions[0];
-        object_marker.scale.y = shape.dimensions[1];
-        object_marker.scale.z = shape.dimensions[2];*/
+          object_marker.scale.y = shape.dimensions[1];
+          object_marker.scale.z = shape.dimensions[2];*/
         obj.dimensions = obj_dim;
 
       }
 
       objects->push_back(obj);
-    
+
       //object_marker.color.g = 1;
       //object_marker.color.a = 0.3;
       //marker_pub_->publish(object_marker);
@@ -281,22 +281,22 @@ namespace perception {
   }
 
   void Segmenter::SegmentTabletopScene(PointCloudC::Ptr cloud, std::vector<Object>* objects) {
-  // Same as callback, but with visualization code removed.
+    // Same as callback, but with visualization code removed.
     pcl::PointIndices::Ptr table_inliers(new pcl::PointIndices());
     pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients());
     SegmentSurface(cloud, table_inliers, coeff, objects);     
   }
 
-  Segmenter::Segmenter(ros::Publisher *surface_points_pub, ros::Publisher *marker_pub, ros::Publisher *above_surface_pub) : 
-    surface_points_pub_(surface_points_pub), marker_pub_(marker_pub), above_surface_pub_(above_surface_pub)  {}
+  Segmenter::Segmenter(ros::Publisher *surface_points_pub, ros::Publisher *marker_pub, ros::Publisher *above_surface_pub, ObjectRecognizer* recognizer) : 
+    surface_points_pub_(surface_points_pub), marker_pub_(marker_pub), above_surface_pub_(above_surface_pub), recognizer_(recognizer)  {}
 
   void Segmenter::Callback(const sensor_msgs::PointCloud2& msg) {
     /*PointCloudC::Ptr cloud(new PointCloudC());
-    pcl::fromROSMsg(msg, *cloud);
+      pcl::fromROSMsg(msg, *cloud);
 
-    pcl::PointIndices::Ptr table_inliers(new pcl::PointIndices());
-    pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients());
-    SegmentSurface(cloud, table_inliers, coeff); */
+      pcl::PointIndices::Ptr table_inliers(new pcl::PointIndices());
+      pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients());
+      SegmentSurface(cloud, table_inliers, coeff); */
 
     PointCloudC::Ptr cloud_unfiltered(new PointCloudC());
     pcl::fromROSMsg(msg, *cloud_unfiltered);
@@ -321,6 +321,34 @@ namespace perception {
       object_marker.color.g = 1;
       object_marker.color.a = 0.3;
       if (marker_pub_) marker_pub_->publish(object_marker);
+
+      // Recognize the object
+      std::string name;
+      double confidence;
+      if (recognizer_) recognizer_->Recognize(object, &name, &confidence);
+      confidence = round(1000 * confidence) / 1000;
+
+      std::stringstream ss;
+      ss << name << " (" << confidence << ")";
+
+      // Publish the recognition result.
+      visualization_msgs::Marker name_marker;
+      name_marker.ns = "recognition";
+      name_marker.id = i;
+      name_marker.header.frame_id = "base_link";
+      name_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+      name_marker.pose.position = object.pose.position;
+      name_marker.pose.position.z += 0.1;
+      name_marker.pose.orientation.w = 1;
+      name_marker.scale.x = 0.025;
+      name_marker.scale.y = 0.025;
+      name_marker.scale.z = 0.025;
+      name_marker.color.r = 0;
+      name_marker.color.g = 0;
+      name_marker.color.b = 1.0;
+      name_marker.color.a = 1.0;
+      name_marker.text = ss.str();
+      if (marker_pub_) marker_pub_->publish(name_marker);
     }
 
   }

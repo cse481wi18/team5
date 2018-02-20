@@ -163,7 +163,7 @@ target_link_libraries(perception_crop ${catkin_LIBRARIES})
 
 add_library(perception_segmentation src/segmentation.cpp)
 add_dependencies(perception_segmentation ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(perception_segmentation ${catkin_LIBRARIES})
+target_link_libraries(perception_segmentation perception_feature_extraction perception_object_recognizer ${catkin_LIBRARIES})
 
 add_library(perception_feature_extraction src/feature_extraction.cpp)
 add_dependencies(perception_feature_extraction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -188,6 +188,7 @@ target_link_libraries(perception_point_cloud_demo
     perception_crop
     perception_segmentation
     perception_box_fitter
+    perception_object_recognizer
     ${catkin_LIBRARIES}
 )
 
