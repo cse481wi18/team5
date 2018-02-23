@@ -141,7 +141,7 @@ namespace perception {
     table_marker.color.r = 1;
     table_marker.color.a = 0.8;
     table_marker.pose.position.z -= table_marker.scale.z;
-    if (marker_pub_) marker_pub_->publish(table_marker);
+    //if (marker_pub_) marker_pub_->publish(table_marker);
 
     //std::vector<pcl::PointIndices> object_indices;
     SegmentSurfaceObjects(subset_cloud, indices2, objects, coeff); // TO BE CHANGED

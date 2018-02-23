@@ -12,6 +12,8 @@ from joint_state_reader import JointStateReader
 from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState, QueryControllerStatesAction
 from tf import TransformListener, TransformerROS
 from geometry_msgs.msg import PoseStamped
+from annotator import Annotator
+
 
 FIELD_GRIP_STATE = "grip_state"
 
@@ -135,8 +137,6 @@ class ProgramByDemoHelper:
         # first parameter defines the ORIGIN, second parameter is the FRAME WE WANT TO CONVERT INTO THE NEW ORIGIN
         self._tfl.waitForTransform(frame, "wrist_roll_link", curr_time, rospy.Duration(1))
         p, o = self._tfl.lookupTransform(frame, "wrist_roll_link", curr_time)
-        print p
-        print o
         pose_st.pose.position.x = p[0]
         pose_st.pose.position.y = p[1]
         pose_st.pose.position.z = p[2]
@@ -159,7 +159,6 @@ class ProgramByDemoHelper:
             saved_pos = pos["position"]
             # transform back into the base frame when running
             base_pose = self._tfl.transformPose(DEFAULT_FRAME, saved_pos)
-            print base_pose
             self._arm.move_to_pose(base_pose)
             if pos["grip_state"] == GRIPPER_OPEN and self._get_gripper_state() == GRIPPER_CLOSE:
                 self._gripper.open()
@@ -192,6 +191,7 @@ class PbdCli:
         self._current_program = []
         self._programs = {}
         self._current_ar_tags = None
+        #self._map_annotator = Annotator()
 
     def run(self):
         while True:
