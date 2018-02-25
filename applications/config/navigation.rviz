@@ -5,6 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /InteractiveMarkers1
+        - /InteractiveMarkers2
       Splitter Ratio: 0.5
     Tree Height: 866
   - Class: rviz/Selection
@@ -380,6 +382,15 @@ Visualization Manager:
       Show Visual Aids: false
       Update Topic: /map_annotator/map_poses/update
       Value: true
+    - Class: rviz/InteractiveMarkers
+      Enable Transparency: true
+      Enabled: true
+      Name: InteractiveMarkers
+      Show Axes: false
+      Show Descriptions: true
+      Show Visual Aids: false
+      Update Topic: /gripper_im_server/update
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -404,22 +415,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.2125
+      Distance: 6.78244
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.37664
-        Y: -4.09309
-        Z: -0.374083
+        X: 2.11129
+        Y: -4.10766
+        Z: 0.347897
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.769797
+      Pitch: -0.0452031
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.0517
+      Yaw: 1.5817
     Saved: ~
 Window Geometry:
   Displays:
