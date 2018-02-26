@@ -7,7 +7,9 @@ import os
 import threading
 import pickle
 import json
+import math
 from program_by_demo_demo import PbdCli, ProgramByDemoHelper
+import numpy as np
 
 MODE_MAIN = 0
 MODE_PROGRAM = 1
@@ -30,6 +32,7 @@ DEFAULT_FRAME = "base_link"
 
 GRIPPER_OPEN = 0
 GRIPPER_CLOSE = 1
+EPS = 0.05
 
 def export_program(name, program):
     pickle.dump(program, open("ad_%s.pickle" % name, "wb"))
@@ -47,11 +50,31 @@ class ActionByDemoHelper(ProgramByDemoHelper):
     def _loc_callback(self, msg):
         self._curr_loc = msg
 
+    def euclidean_distance(self, p1, p2):
+        dist_squared = math.pow(p1.pose.position.x - p2.pose.position.x, 2)
+        + math.pow(p1.pose.position.y - p2.pose.position.y, 2)
+        + math.pow(p1.pose.position.z - p2.pose.position.z, 2)
+        return math.sqrt(dist_squared)
+   
+    def quaternion_dist(self, q1, q2):
+        v1 = [q1.x, q1.y, q1.z, q1.w]
+        v2 = [q2.x, q2.y, q2.z, q2.w]
+        return math.fabs(np.dot(v1, v2))                
+
     def go_to(self, loc_msg):
         new_msg = PoseStamped()
         new_msg.header = loc_msg.header
         new_msg.pose = loc_msg.pose.pose
         self._loc_pub.publish(new_msg)
+        r = rospy.Rate(0.1)
+        while not rospy.is_shutdown():
+            print("pos dist: " + str(self.euclidean_distance(new_msg, self._curr_loc.pose)))
+            print("orientation dist: " + str(self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation)))
+            print()
+            if (self.euclidean_distance(new_msg, self._curr_loc.pose) < 0.5
+                    and self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation) > 1 - EPS):
+                break
+            r.sleep()
         return True
 
     def get_location(self):
