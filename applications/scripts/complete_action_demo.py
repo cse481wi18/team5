@@ -10,6 +10,7 @@ import json
 import math
 from program_by_demo_demo import PbdCli, ProgramByDemoHelper
 import numpy as np
+from annotator import Annotator
 
 MODE_MAIN = 0
 MODE_PROGRAM = 1
@@ -106,8 +107,10 @@ class ActionDemoCli:
         self._current_program = []
         self._programs = {}
         self._current_ar_tags = None
+        self._annotator = Annotator()
 
     def run(self):
+        print (self._annotator.get_saved_msgs())
         while True:
             self._handle_command(self._get_command())
 
@@ -164,6 +167,13 @@ class ActionDemoCli:
                 self._programs[command[1]] = import_program(command[1])
             elif command[0] == "help":
                 json.dumps(COMMANDS)
+            elif command[0] == "use_anno":
+                positions = ["table", "table2", "start", "green"]
+                prog = []
+                locs = self._annotator.get_saved_msgs()
+                for pos in positions:
+                    prog.append(("torso", locs[pos]))
+                self._abd.run_program(prog)
             else:
                 print "bad command"
         elif self._mode is MODE_PROGRAM:

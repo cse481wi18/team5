@@ -29,6 +29,11 @@ class Annotator(object):
     def get_saved_msgs(self):
         return copy.deepcopy(self._saved_msgs)
 
+    def get_saved_loc(self, loc):
+        if loc not in self._saved_msgs:
+            return None
+        return copy.deepcopy(self._saved_msgs[loc])
+
     def delete_pose(self, pose_name):
         if pose_name not in self._saved_msgs:
             return False
