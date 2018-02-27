@@ -15,12 +15,14 @@ from annotator import Annotator
 MODE_MAIN = 0
 MODE_PROGRAM = 1
 MODE_SELECT_FRAME = 2
+MODE_NAV = 3
 
-MODES = ["main", "program", "select_frame"]
+MODES = ["main", "program", "select_frame", "nav"]
 COMMANDS = {
-    "main": ["start", "list", "run", "export", "import", "help"],
+    "main": ["start", "list", "run", "export", "import", "nav", "help"],
     "program": ["savegrip", "saveloc", "finish"],
-    "select_frame": ["<N>"]
+    "select_frame": ["<N>"],
+    "nav": ["move <start location> <end location>", "list", "finish"]
 }
 
 FIELD_GRIP_STATE = "grip_state"
@@ -165,6 +167,8 @@ class ActionDemoCli:
                     print "provide program name"
                     return
                 self._programs[command[1]] = import_program(command[1])
+            elif command[0] == "nav":
+                self._mode = MODE_NAV
             elif command[0] == "help":
                 json.dumps(COMMANDS)
             elif command[0] == "use_anno":
@@ -211,6 +215,33 @@ class ActionDemoCli:
                 self._mode = MODE_PROGRAM
             else:
                 print "illegal frame"
+        elif self._mode is MODE_NAV:
+            if command[0] == "move":
+                if len(command) < 3:
+                    print "usage: move <starting pose name> <ending pose name>"
+                    return
+                locs = self._annotator.get_saved_msgs()
+                if command[1] not in locs.keys():
+                    print "invalid starting position"
+                    return
+                if command[2] not in locs.keys():
+                    print "invalid ending position"
+                    return
+                self._current_program.append(("torso", locs[command[1]]))
+                self._current_program.append(("torso", locs[command[2]]))
+            elif command[0] == "list":
+                locs = self._annotator.get_saved_msgs()
+                for loc in locs.keys():
+                    print "\t", loc
+            elif command[0] == "finish":
+                if len(command) < 2:
+                    print "provide program name"
+                    return
+                self._programs[command[1]] = self._current_program
+                self._current_program = []
+                self._mode = MODE_MAIN
+            else:
+                print "bad command"
         else:
             raise Exception("Illegal abd mode")
 
