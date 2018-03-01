@@ -19,10 +19,10 @@ MODE_NAV = 3
 
 MODES = ["main", "program", "select_frame", "nav"]
 COMMANDS = {
-    "main": ["start", "list", "run", "export", "import", "nav", "help"],
-    "program": ["savegrip", "saveloc", "finish"],
-    "select_frame": ["<N>"],
-    "nav": ["move <start location> <end location>", "list", "finish"]
+    "main": ["start", "list", "run", "export", "import", "nav", "help", "exit"],
+    "program": ["savegrip", "saveloc", "finish", "exit"],
+    "select_frame": ["<N>", "exit"],
+    "nav": ["move <start location> <end location>", "list", "done", "exit"]
 }
 
 FIELD_GRIP_STATE = "grip_state"
@@ -112,7 +112,6 @@ class ActionDemoCli:
         self._annotator = Annotator()
 
     def run(self):
-        print (self._annotator.get_saved_msgs())
         while True:
             self._handle_command(self._get_command())
 
@@ -227,18 +226,17 @@ class ActionDemoCli:
                 if command[2] not in locs.keys():
                     print "invalid ending position"
                     return
-                self._current_program.append(("torso", locs[command[1]]))
-                self._current_program.append(("torso", locs[command[2]]))
+                # self._current_program.append(("torso", locs[command[1]]))
+                # self._current_program.append(("torso", locs[command[2]]))
+                prog = []
+                prog.append(("torso", locs[command[1]]))
+                prog.append(("torso", locs[command[2]]))
+                self._abd.run_program(prog)
             elif command[0] == "list":
                 locs = self._annotator.get_saved_msgs()
                 for loc in locs.keys():
                     print "\t", loc
-            elif command[0] == "finish":
-                if len(command) < 2:
-                    print "provide program name"
-                    return
-                self._programs[command[1]] = self._current_program
-                self._current_program = []
+            elif command[0] == "done":
                 self._mode = MODE_MAIN
             else:
                 print "bad command"
