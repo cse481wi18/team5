@@ -22,7 +22,7 @@ COMMANDS = {
     "main": ["start", "list", "run", "export", "import", "nav", "help", "exit"],
     "program": ["savegrip", "saveloc", "finish", "exit"],
     "select_frame": ["<N>", "exit"],
-    "nav": ["move <start location> <end location>", "list", "done", "exit"]
+    "nav": ["move_one <location>", "move <start location> <end location>", "list", "done", "exit"]
 }
 
 FIELD_GRIP_STATE = "grip_state"
@@ -32,6 +32,10 @@ FIELD_POSITION = "position"
 RVIZ = True
 FILE_NAME = "program_by_demo_saved.pickle"
 DEFAULT_FRAME = "base_link"
+
+# We want to have a file that stores utility gripper program that would contain
+# an action that we always want to have available
+PRELOADED_PROGRAMS_FILE_NAME = "preload"
 
 GRIPPER_OPEN = 0
 GRIPPER_CLOSE = 1
@@ -107,10 +111,13 @@ class ActionDemoCli:
         self._mode = MODE_MAIN  # defines the mode of the CLI application
         self._abd = ActionByDemoHelper()
         self._current_program = []
-        self._programs = {}
+        try:
+            self._programs = import_program(PRELOADED_PROGRAMS_FILE_NAME)
+        except EOFError:
+            self._programs = {}
         self._current_ar_tags = None
         self._annotator = Annotator()
-
+    
     def run(self):
         while True:
             self._handle_command(self._get_command())
@@ -144,7 +151,9 @@ class ActionDemoCli:
                     print "invalid program"
                     return False
                 return True
+
             if command[0] == "start":
+                print "calling start"
                 self._abd.relax_arm()
                 self._mode = MODE_PROGRAM
             elif command[0] == "list":
@@ -171,12 +180,16 @@ class ActionDemoCli:
             elif command[0] == "help":
                 json.dumps(COMMANDS)
             elif command[0] == "use_anno":
-                positions = ["table", "table2", "start", "green"]
-                prog = []
                 locs = self._annotator.get_saved_msgs()
-                for pos in positions:
-                    prog.append(("torso", locs[pos]))
+                for loc in locs:
+                    print loc
+                #self._abd.run_program(prog)
+                prog = []
+                prog.append(("torso", locs["outside_elev"]))
+                prog.extend(self._programs["elev_up"])
                 self._abd.run_program(prog)
+            elif command[0] == "save_all":
+                pickle.dump(self._programs, open("ad_preload.pickle", "wb"))
             else:
                 print "bad command"
         elif self._mode is MODE_PROGRAM:
@@ -215,7 +228,18 @@ class ActionDemoCli:
             else:
                 print "illegal frame"
         elif self._mode is MODE_NAV:
-            if command[0] == "move":
+            if command[0] == "move_one":
+                if len(command) < 2:
+                    print "usage: move <pose>"
+                    return
+                locs = self._annotator.get_saved_msgs()
+                if command[1] not in locs.keys():
+                    print "invalid pose"
+                    return
+
+                prog = [("torso", locs[command[1]])]
+                self._abd.run_program(prog)
+            elif command[0] == "move":
                 if len(command) < 3:
                     print "usage: move <starting pose name> <ending pose name>"
                     return

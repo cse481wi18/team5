@@ -35,7 +35,7 @@ FIELD_POSITION = "position"
     is different from the previous iteration's.
 '''
 
-RVIZ = True
+RVIZ = False
 FILE_NAME = "program_by_demo_saved.pickle"
 DEFAULT_FRAME = "base_link"
 
