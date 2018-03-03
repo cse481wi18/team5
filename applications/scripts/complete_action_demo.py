@@ -2,6 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+from std_msgs.msg import Int32
 import copy
 import os
 import threading
@@ -41,6 +42,8 @@ GRIPPER_OPEN = 0
 GRIPPER_CLOSE = 1
 EPS = 0.05
 
+
+
 def export_program(name, program):
     pickle.dump(program, open("ad_%s.pickle" % name, "wb"))
 
@@ -52,8 +55,14 @@ class ActionByDemoHelper(ProgramByDemoHelper):
         ProgramByDemoHelper.__init__(self)
         self._loc_pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
         self._loc_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, callback=self._loc_callback)
+        self._fsr_sub = rospy.Subscriber("fsr", Int32, callback=self._move_callback)
         self._curr_loc = None
+        self._MOVE = False
 
+    def _move_callback(self, msg):
+        if(msg.data > 850):
+            self._MOVE = !self._MOVE
+    
     def _loc_callback(self, msg):
         self._curr_loc = msg
 
@@ -78,8 +87,7 @@ class ActionByDemoHelper(ProgramByDemoHelper):
             print("pos dist: " + str(self.euclidean_distance(new_msg, self._curr_loc.pose)))
             print("orientation dist: " + str(self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation)))
             print()
-            if (self.euclidean_distance(new_msg, self._curr_loc.pose) < 0.5
-                    and self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation) > 1 - EPS):
+            if ((self.euclidean_distance(new_msg, self._curr_loc.pose) < 0.5 and self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation) > 1 - EPS) or !self.MOVE):
                 break
             r.sleep()
         return True
@@ -228,16 +236,16 @@ class ActionDemoCli:
             else:
                 print "illegal frame"
         elif self._mode is MODE_NAV:
-            if command[0] == "move_one":
-                if len(command) < 2:
-                    print "usage: move <pose>"
-                    return
+            if command[0] == "move_demo":
                 locs = self._annotator.get_saved_msgs()
-                if command[1] not in locs.keys():
-                    print "invalid pose"
-                    return
-
-                prog = [("torso", locs[command[1]])]
+                prog = []
+                prog.append(("torso", locs["outside_elev"]))
+                prog.extend(self._programs["elev_up"])
+                prog.extend(self._programs["neutral"])
+                prog.append(("torso", locs["inside_elev"]))
+                prog.extend(self._programs["elev_1"])
+                prog.extend(self._programs["neutral"])
+                prog.append(("torso", locs["outside_elev"]))
                 self._abd.run_program(prog)
             elif command[0] == "move":
                 if len(command) < 3:
