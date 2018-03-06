@@ -3,6 +3,8 @@
 import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import Int32
+from move_base_msgs.msg import MoveBaseActionResult
+from actionlib_msgs.msg import GoalStatus
 import copy
 import os
 import threading
@@ -12,6 +14,8 @@ import math
 from program_by_demo_demo import PbdCli, ProgramByDemoHelper
 import numpy as np
 from annotator import Annotator
+import fetch_api
+#from map_annotator import Annotator as annotator_alt
 
 MODE_MAIN = 0
 MODE_PROGRAM = 1
@@ -20,7 +24,7 @@ MODE_NAV = 3
 
 MODES = ["main", "program", "select_frame", "nav"]
 COMMANDS = {
-    "main": ["start", "list", "run", "export", "import", "nav", "help", "exit"],
+    "main": ["start", "list", "run", "export", "import", "nav", "help", "exit", "save_all"],
     "program": ["savegrip", "saveloc", "finish", "exit"],
     "select_frame": ["<N>", "exit"],
     "nav": ["move_one <location>", "move <start location> <end location>", "list", "done", "exit"]
@@ -41,6 +45,7 @@ PRELOADED_PROGRAMS_FILE_NAME = "preload"
 GRIPPER_OPEN = 0
 GRIPPER_CLOSE = 1
 EPS = 0.05
+EPS_BIG = 0.2
 
 
 
@@ -53,43 +58,45 @@ def import_program(name):
 class ActionByDemoHelper(ProgramByDemoHelper):
     def __init__(self):
         ProgramByDemoHelper.__init__(self)
-        self._loc_pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
+        self._nav_goal_pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
+        self._nav_goal_sub = rospy.Subscriber("move_base/result", MoveBaseActionResult, callback=self._nav_goal_callback)
         self._loc_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, callback=self._loc_callback)
         self._fsr_sub = rospy.Subscriber("fsr", Int32, callback=self._move_callback)
         self._curr_loc = None
-        self._MOVE = False
+        self._move = False
+        self._head = fetch_api.Head()
+        self._nav_goal_result = None
 
     def _move_callback(self, msg):
         if(msg.data > 850):
-            self._MOVE = !self._MOVE
+            self._move = not self._move
     
     def _loc_callback(self, msg):
         self._curr_loc = msg
 
-    def euclidean_distance(self, p1, p2):
-        dist_squared = math.pow(p1.pose.position.x - p2.pose.position.x, 2)
-        + math.pow(p1.pose.position.y - p2.pose.position.y, 2)
-        + math.pow(p1.pose.position.z - p2.pose.position.z, 2)
-        return math.sqrt(dist_squared)
-   
-    def quaternion_dist(self, q1, q2):
-        v1 = [q1.x, q1.y, q1.z, q1.w]
-        v2 = [q2.x, q2.y, q2.z, q2.w]
-        return math.fabs(np.dot(v1, v2))                
+    def _nav_goal_callback(self, msg):
+        self._nav_goal_result = msg
 
     def go_to(self, loc_msg):
         new_msg = PoseStamped()
         new_msg.header = loc_msg.header
         new_msg.pose = loc_msg.pose.pose
-        self._loc_pub.publish(new_msg)
+        self._nav_goal_pub.publish(new_msg)
+        # This means we only check 1 time a second
         r = rospy.Rate(0.1)
         while not rospy.is_shutdown():
-            print("pos dist: " + str(self.euclidean_distance(new_msg, self._curr_loc.pose)))
-            print("orientation dist: " + str(self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation)))
-            print()
-            if ((self.euclidean_distance(new_msg, self._curr_loc.pose) < 0.5 and self.quaternion_dist(new_msg.pose.orientation, self._curr_loc.pose.pose.orientation) > 1 - EPS) or !self.MOVE):
+            if self._nav_goal_result == None:
+                pass
+            elif self._nav_goal_result.status.status == GoalStatus.SUCCEEDED:
                 break
+            else:
+                rospy.logerr("%d" % self._nav_goal_result.status.status)
+            # Always wait 1/0.1 = 10 seconds for this while loop
             r.sleep()
+        
+        # Always reset the pan/tilt to 0 0 after navigation completes
+        print "Done moving!"
+        self._head.pan_tilt(0, 0)
         return True
 
     def get_location(self):
@@ -121,7 +128,7 @@ class ActionDemoCli:
         self._current_program = []
         try:
             self._programs = import_program(PRELOADED_PROGRAMS_FILE_NAME)
-        except EOFError:
+        except:
             self._programs = {}
         self._current_ar_tags = None
         self._annotator = Annotator()
@@ -151,10 +158,13 @@ class ActionDemoCli:
             print json.dumps(COMMANDS)
             return
         if self._mode is MODE_MAIN:
-            def two_args(command):
-                if len(command) < 2:
+            def n_args(command, n):
+                if len(command) < n:
                     print "provide program name"
                     return False
+                return True
+
+            def valid_prog(command):
                 if command[1] not in self._programs:
                     print "invalid program"
                     return False
@@ -168,34 +178,24 @@ class ActionDemoCli:
                 for name in self._programs:
                     print name
             elif command[0] == "run":
-                if not two_args(command):
+                if not n_args(command, 2) or not valid_prog(command):
                     return
                 print "running program %s" % command[1]
                 self._abd.run_program(self._programs[command[1]])
             elif command[0] == "export":
-                if not two_args(command):
+                if not n_args(command, 2) or not valid_prog(command):
                     return
                 print "exporting program %s to disk" % command[1]
                 print self._programs[command[1]]
                 export_program(command[1], self._programs[command[1]])
             elif command[0] == "import":
-                if len(command) < 2:
-                    print "provide program name"
+                if not n_args(command, n):
                     return
                 self._programs[command[1]] = import_program(command[1])
             elif command[0] == "nav":
                 self._mode = MODE_NAV
             elif command[0] == "help":
                 json.dumps(COMMANDS)
-            elif command[0] == "use_anno":
-                locs = self._annotator.get_saved_msgs()
-                for loc in locs:
-                    print loc
-                #self._abd.run_program(prog)
-                prog = []
-                prog.append(("torso", locs["outside_elev"]))
-                prog.extend(self._programs["elev_up"])
-                self._abd.run_program(prog)
             elif command[0] == "save_all":
                 pickle.dump(self._programs, open("ad_preload.pickle", "wb"))
             else:
@@ -209,8 +209,7 @@ class ActionDemoCli:
             elif command[0] == "saveloc":
                 self._current_program.append(("torso", self._abd.get_location()))
             elif command[0] == "finish":
-                if len(command) < 2:
-                    print "provide program name"
+                if not n_args(command):
                     return
 
                 self._programs[command[1]] = self._current_program
@@ -236,16 +235,10 @@ class ActionDemoCli:
             else:
                 print "illegal frame"
         elif self._mode is MODE_NAV:
-            if command[0] == "move_demo":
+            if command[0] == "move_one":
                 locs = self._annotator.get_saved_msgs()
                 prog = []
-                prog.append(("torso", locs["outside_elev"]))
-                prog.extend(self._programs["elev_up"])
-                prog.extend(self._programs["neutral"])
-                prog.append(("torso", locs["inside_elev"]))
-                prog.extend(self._programs["elev_1"])
-                prog.extend(self._programs["neutral"])
-                prog.append(("torso", locs["outside_elev"]))
+                prog.append(("torso", locs[command[1]]))
                 self._abd.run_program(prog)
             elif command[0] == "move":
                 if len(command) < 3:
@@ -284,6 +277,9 @@ def wait_for_time():
 def main():
     print json.dumps(COMMANDS)
     rospy.init_node('action_by_demo')
+    wait_for_time()
+
+    print "Loading..."
 
     cli = ActionDemoCli()
     cli.run()
