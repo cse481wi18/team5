@@ -88,6 +88,7 @@ class ActionByDemoHelper(ProgramByDemoHelper):
             if self._nav_goal_result == None:
                 pass
             elif self._nav_goal_result.status.status == GoalStatus.SUCCEEDED:
+                self._nav_goal_result = None
                 break
             else:
                 rospy.logerr("%d" % self._nav_goal_result.status.status)
