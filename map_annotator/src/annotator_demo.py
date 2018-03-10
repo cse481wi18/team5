@@ -2,7 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
-from annotator import Annotator
+from map_annotator import Annotator
 import pickle
 import copy
 import os
