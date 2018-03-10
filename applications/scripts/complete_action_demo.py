@@ -3,8 +3,8 @@
 import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import Int32
-from move_base_msgs.msg import MoveBaseActionResult
 from actionlib_msgs.msg import GoalStatus
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 import copy
 import os
 import threading
@@ -15,6 +15,7 @@ from program_by_demo_demo import PbdCli, ProgramByDemoHelper
 import numpy as np
 from annotator import Annotator
 import fetch_api
+import actionlib
 #from map_annotator import Annotator as annotator_alt
 
 MODE_MAIN = 0
@@ -58,50 +59,38 @@ def import_program(name):
 class ActionByDemoHelper(ProgramByDemoHelper):
     def __init__(self):
         ProgramByDemoHelper.__init__(self)
-        self._nav_goal_pub = rospy.Publisher("move_base_simple/goal", PoseStamped, queue_size=10)
-        self._nav_goal_sub = rospy.Subscriber("move_base/result", MoveBaseActionResult, callback=self._nav_goal_callback)
-        self._loc_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, callback=self._loc_callback)
+        self.nav_client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+        self.nav_client.wait_for_result()
         self._fsr_sub = rospy.Subscriber("fsr", Int32, callback=self._move_callback)
-        self._curr_loc = None
         self._move = False
         self._head = fetch_api.Head()
-        self._nav_goal_result = None
+        self._curr_goal = None
 
     def _move_callback(self, msg):
         if(msg.data > 850):
             self._move = not self._move
-    
-    def _loc_callback(self, msg):
-        self._curr_loc = msg
-
-    def _nav_goal_callback(self, msg):
-        self._nav_goal_result = msg
 
     def go_to(self, loc_msg):
+        goal = MoveBaseGoal()
         new_msg = PoseStamped()
         new_msg.header = loc_msg.header
         new_msg.pose = loc_msg.pose.pose
-        self._nav_goal_pub.publish(new_msg)
-        # This means we only check 1 time a second
-        r = rospy.Rate(0.1)
+        goal.target_pose = new_msg
+        self._curr_goal = goal
+        self.nav_client.send_goal(goal)
+        # This means we only check 1 time every second
+        r = rospy.Rate(1)
         while not rospy.is_shutdown():
-            if self._nav_goal_result == None:
-                pass
-            elif self._nav_goal_result.status.status == GoalStatus.SUCCEEDED:
-                self._nav_goal_result = None
+            state = self.nav_client.get_state()
+            if (state == GoalStatus.SUCCEEDED):
                 break
-            else:
-                rospy.logerr("%d" % self._nav_goal_result.status.status)
-            # Always wait 1/0.1 = 10 seconds for this while loop
             r.sleep()
-        
         # Always reset the pan/tilt to 0 0 after navigation completes
         print "Done moving!"
+        # TODO wait some time before doing this
         self._head.pan_tilt(0, 0)
+        self._curr_goal = None
         return True
-
-    def get_location(self):
-        return copy.deepcopy(self._curr_loc)
 
     def run_program(self, program):
         """
@@ -113,6 +102,8 @@ class ActionByDemoHelper(ProgramByDemoHelper):
             if component == "arm":
                 saved_pos = pos["position"]
                 # transform back into the base frame when running
+                now = rospy.Time(0)
+                self._tfl.waitForTransform(DEFAULT_FRAME, saved_pos.header.frame_id, now, rospy.Duration(60))
                 base_pose = self._tfl.transformPose(DEFAULT_FRAME, saved_pos)
                 self._arm.move_to_pose(base_pose)
                 if pos["grip_state"] == GRIPPER_OPEN and self._get_gripper_state() == GRIPPER_CLOSE:
@@ -153,18 +144,17 @@ class ActionDemoCli:
         print choose_frame_text
 
     def _handle_command(self, command):
+        def n_args(command, n):
+            if len(command) < n:
+                print "provide program name"
+                return False
+            return True
         if command[0] == "exit":
             exit(0)
         elif command[0] == "help":
             print json.dumps(COMMANDS)
             return
         if self._mode is MODE_MAIN:
-            def n_args(command, n):
-                if len(command) < n:
-                    print "provide program name"
-                    return False
-                return True
-
             def valid_prog(command):
                 if command[1] not in self._programs:
                     print "invalid program"
@@ -207,12 +197,9 @@ class ActionDemoCli:
                 self._current_ar_tags = self._abd.get_ar_tag_markers()
                 self._print_choose_frame_text()
                 self._mode = MODE_SELECT_FRAME
-            elif command[0] == "saveloc":
-                self._current_program.append(("torso", self._abd.get_location()))
             elif command[0] == "finish":
-                if not n_args(command):
+                if not n_args(command, 2):
                     return
-
                 self._programs[command[1]] = self._current_program
                 self._current_program = []
                 self._abd.start_arm()

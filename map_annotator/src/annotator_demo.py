@@ -27,6 +27,10 @@ def main():
     print commands_msg
     rospy.init_node("annotator")
     annotator = Annotator()
+    msgs = annotator.get_saved_msgs()
+    for msg in msgs:
+        print msgs[msg]
+        print "blarg"
     while (True):
         command = get_command() 
         if command[0] == "exit":

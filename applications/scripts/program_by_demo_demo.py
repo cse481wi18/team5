@@ -135,7 +135,7 @@ class ProgramByDemoHelper:
         pose_st.header.frame_id = frame
         curr_time = rospy.Time(0)
         # first parameter defines the ORIGIN, second parameter is the FRAME WE WANT TO CONVERT INTO THE NEW ORIGIN
-        self._tfl.waitForTransform(frame, "wrist_roll_link", curr_time, rospy.Duration(1))
+        self._tfl.waitForTransform(frame, "wrist_roll_link", curr_time, rospy.Duration(10))
         p, o = self._tfl.lookupTransform(frame, "wrist_roll_link", curr_time)
         pose_st.pose.position.x = p[0]
         pose_st.pose.position.y = p[1]
