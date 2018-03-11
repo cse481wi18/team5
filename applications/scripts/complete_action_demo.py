@@ -17,7 +17,7 @@ import numpy as np
 import fetch_api
 import actionlib
 from map_annotator import Annotator
-from eos_visual_guide import Leash
+import eos_visual_guide import Leash
 
 MODE_MAIN = 0
 MODE_PROGRAM = 1
@@ -69,7 +69,7 @@ class ActionByDemoHelper(ProgramByDemoHelper):
         self._should_move = False
         self._active = False
 
-    def _leash_callback(self):
+    def _leash_callback():
         if (self._active):
             self._should_move = not self._should_move
             if (self._should_move):
