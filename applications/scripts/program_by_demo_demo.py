@@ -12,7 +12,7 @@ from joint_state_reader import JointStateReader
 from robot_controllers_msgs.msg import QueryControllerStatesGoal, ControllerState, QueryControllerStatesAction
 from tf import TransformListener, TransformerROS
 from geometry_msgs.msg import PoseStamped
-from annotator import Annotator
+from map_annotator import Annotator
 
 
 FIELD_GRIP_STATE = "grip_state"
@@ -35,7 +35,7 @@ FIELD_POSITION = "position"
     is different from the previous iteration's.
 '''
 
-RVIZ = False
+RVIZ = True
 FILE_NAME = "program_by_demo_saved.pickle"
 DEFAULT_FRAME = "base_link"
 
@@ -96,7 +96,7 @@ class ProgramByDemoHelper:
 
     # ACTIONS
 
-    def _send_arm_goal(self, controller_state):
+    def _send_arm_goal(self, controller_state, rviz):
         """
         Helper function for sending an arm goal
         :param state: RUNNING or STOPPED
@@ -114,10 +114,10 @@ class ProgramByDemoHelper:
         self._controller_client.wait_for_result()
 
     def relax_arm(self):
-        self._send_arm_goal(ControllerState.STOPPED)
+        self._send_arm_goal(ControllerState.STOPPED, RVIZ)
 
     def start_arm(self):
-        self._send_arm_goal(ControllerState.RUNNING)
+        self._send_arm_goal(ControllerState.RUNNING, RVIZ)
 
     def close_gripper(self):
         self._gripper.close(self._gripper.MAX_EFFORT)
@@ -134,7 +134,7 @@ class ProgramByDemoHelper:
         pose_st = PoseStamped()
         pose_st.header.frame_id = frame
         curr_time = rospy.Time(0)
-        # first parameter defines the ORIGIN, second parameter is the FRAME WE WANT TO CONVERT INTO THE NEW ORIGIN
+        # first
         self._tfl.waitForTransform(frame, "wrist_roll_link", curr_time, rospy.Duration(10))
         p, o = self._tfl.lookupTransform(frame, "wrist_roll_link", curr_time)
         pose_st.pose.position.x = p[0]

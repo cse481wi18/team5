@@ -1,0 +1,4 @@
+<launch>
+  <!-- Map annotator server -->
+  <node pkg="eos_visual_guide" type="eos_annotator.py" name="eos_annotator" />
+</launch>

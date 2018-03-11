@@ -1,11 +1,11 @@
-import rospy
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
 import copy
-import os
-import threading
 import pickle
 
+import rospy
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+
 FILE_NAME = "annotator-poses.pickle"
+
 
 class Annotator(object):
     def __init__(self, data_file=FILE_NAME):
@@ -24,7 +24,7 @@ class Annotator(object):
         self._curr_msg = msg
 
     def get_msg(self):
-        return copy.deepcopy(self._curr_pose)
+        return copy.deepcopy(self._curr_msg)
 
     def get_saved_msgs(self):
         return copy.deepcopy(self._saved_msgs)
@@ -33,7 +33,7 @@ class Annotator(object):
         if pose_name not in self._saved_msgs:
             return False
         else:
-            del(self._saved_msgs[pose_name])
+            del (self._saved_msgs[pose_name])
             self.write_dump()
             return True
 
@@ -41,6 +41,11 @@ class Annotator(object):
         self._saved_msgs[pose_name] = self._curr_msg
         self.write_dump()
         return self._curr_msg
+
+    def get_pose(self, pose_name):
+        if pose_name not in self._saved_msgs:
+            return None
+        return self._saved_msgs[pose_name]
 
     def update_pose(self, pose_name, pose):
         if pose_name not in self._saved_msgs:
@@ -61,4 +66,3 @@ class Annotator(object):
         new_msg.pose = saved_msg.pose.pose
         self.pub.publish(new_msg)
         return True
-

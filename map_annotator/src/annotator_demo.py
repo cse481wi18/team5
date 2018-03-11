@@ -37,7 +37,7 @@ def main():
             return
         elif command[0] == "list":
             saved_msgs = annotator.get_saved_msgs()
-            if (len(saved_msgs) == 0):
+            if len(saved_msgs) == 0:
                 print "No poses"
             else:
                 print "Poses:"
