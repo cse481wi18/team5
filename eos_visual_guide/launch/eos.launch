@@ -4,7 +4,7 @@
   <include file="$(find fetch_moveit_config)/launch/move_group.launch" />
   <!-- AR markers -->
   <include file="$(find fetch_api)/launch/ar_desktop.launch" />
-  <!-- Sieg map server -->
+  <!-- Map server -->
   <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
     <arg name="map_file" value="$(arg map_file)" />
   </include>

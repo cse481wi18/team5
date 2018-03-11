@@ -46,10 +46,15 @@ class Navigator:
             r.sleep()
 
         # Always reset the pan/tilt to 0 0 after navigation completes
-        print "Done moving for now! Setting head pan/tilt"
+        print "Done!"
+        print "Waiting for navigation to wrap up..."
 
-        # TODO wait some time before doing this
+        # Wait some time before doing this
+        rospy.sleep(rospy.Duration(5))
+        print "Done!"
+        print "Setting head pan/tilt..."
         self._head.pan_tilt(0, 0)
+        print "Done!"
         self._active = False
         self._curr_goal = None
         return True

@@ -3,6 +3,7 @@ COMMAND_EXECUTE = "execute"
 COMMAND_LIST = "list"
 COMMAND_SHOW = "show"
 COMMAND_EXIT = "exit"
+COMMAND_ARM = "arm"
 
 INTERFACE_CLI = "cli"
 INTERFACE_APP = "app"

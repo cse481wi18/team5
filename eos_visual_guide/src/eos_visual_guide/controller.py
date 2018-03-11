@@ -1,7 +1,7 @@
 from .constants import GRIPPER, PROGRAM
 from .user_input import COMMAND_SAVE, COMMAND_EXECUTE, COMMAND_EXIT, COMMAND_LIST, COMMAND_SHOW
 from .cli import Cli
-from .saver import Saver, SAVE
+from .saver import Saver
 from .executor import Executor
 from .leash import Leash
 from .ar_helper import ArTags

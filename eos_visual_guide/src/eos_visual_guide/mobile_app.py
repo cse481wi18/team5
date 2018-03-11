@@ -1,3 +1,6 @@
-class MobileApp:
+from .user_input import UserInput
+
+
+class MobileApp(UserInput):
     def __init__(self):
-        pass
+        UserInput.__init__(self)

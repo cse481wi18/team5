@@ -3,10 +3,7 @@ import pickle
 from .gripper_wrapper import GripperWrapper
 from map_annotator import Annotator
 from .constants import GRIPPER, LOCATION, PROGRAM
-
-SAVE = "save"
-SHOW = "show"
-LIST = "list"
+from .user_input import COMMAND_SAVE, COMMAND_LIST, COMMAND_SHOW
 
 GRIPPERS_FILE = "grippers.pickle"
 PROGRAMS_FILE = "programs.pickle"
@@ -33,7 +30,7 @@ class Saver:
         Run a save command. Depending on the type of the save action,
         save to gripper poses or locations.
         """
-        if c.command == SAVE:
+        if c.command == COMMAND_SAVE:
             if c.payload["type"] == GRIPPER:
                 self._grippers[c.payload["name"]] = self._gripper_wrapper.get_gripper_pose(
                     c.payload["frame_id"])
@@ -45,14 +42,14 @@ class Saver:
                 self._programs[c.payload["name"]] = c.payload["actions"]
                 print "Saved programs"
                 pickle.dump(self._programs, open(PROGRAMS_FILE, 'wb'))
-        elif c.command == LIST:
+        elif c.command == COMMAND_LIST:
             print "Gripper poses: "
             print self.get_saved_gripper_names()
             print "Locations: "
             print self.get_saved_location_names()
             print "Programs: "
             print self.get_saved_program_names()
-        elif c.command == SHOW:
+        elif c.command == COMMAND_SHOW:
             if c.payload["type"] == GRIPPER:
                 print self.get_saved_gripper(c.payload["name"])
             if c.payload["type"] == LOCATION:
