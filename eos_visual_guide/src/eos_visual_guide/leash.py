@@ -1,7 +1,7 @@
 import rospy
 from std_msgs.msg import Int32
 
-LEASH_THRESHOLD = 800
+LEASH_THRESHOLD = 700
 
 
 class Leash:

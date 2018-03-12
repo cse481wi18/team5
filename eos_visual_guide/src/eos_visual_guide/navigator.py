@@ -11,6 +11,7 @@ class Navigator:
         self._curr_goal = None
         self._active = False
         self._nav_client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+        # TODO remove this?
         self._nav_client.wait_for_result()
         self._head = Head()
 

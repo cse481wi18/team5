@@ -12,8 +12,7 @@ def _print_choose_frame_text(ar_tags, default_frame=gripper_wrapper.DEFAULT_FRAM
     """
     choose_frame_text = "Choose a frame:\n"
     choose_frame_text += ("-1: %s; " % default_frame)
-    for i, tag in enumerate(ar_tags):
-        choose_frame_text += ('%d: %s; ' % (i, tag.id))
+    choose_frame_text += str([x.id for x in ar_tags])
 
     print choose_frame_text
 
@@ -33,7 +32,8 @@ class Cli(UserInput):
     def __init__(self):
         UserInput.__init__(self)
 
-        print "Welcome to the EOS Command Line Interface!\n"
+        print "Welcome to the EOS Command Line Interface!"
+        print "Loading subscribers and publishers..."
 
     def get_command(self):
         """
@@ -75,9 +75,9 @@ class Cli(UserInput):
         frame_string = None
         while not frame_string:
             _print_choose_frame_text(ar_tags)
-            index = int(raw_input('>> ').split()[0])
-            if -1 <= index < len(ar_tags):
-                frame_string = gripper_wrapper.DEFAULT_FRAME if index is -1 else "ar_marker_%d" % ar_tags[index].id
+            tag_id = int(raw_input('>> ').split()[0])
+            if tag_id in [x.id for x in ar_tags] or tag_id is -1:
+                frame_string = gripper_wrapper.DEFAULT_FRAME if tag_id is -1 else "ar_marker_%d" % tag_id
             else:
                 print "illegal frame"
         return frame_string

@@ -1,9 +1,12 @@
 <launch>
   <arg name="map_file" />
+  <arg name="ar_size" default="5.6" />
   <!-- Movegroup -->
   <include file="$(find fetch_moveit_config)/launch/move_group.launch" />
   <!-- AR markers -->
-  <include file="$(find fetch_api)/launch/ar_desktop.launch" />
+  <include file="$(find fetch_api)/launch/ar_desktop.launch">
+    <arg name="marker_size" value="$(arg ar_size)" />
+  </include>
   <!-- Map server -->
   <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
     <arg name="map_file" value="$(arg map_file)" />

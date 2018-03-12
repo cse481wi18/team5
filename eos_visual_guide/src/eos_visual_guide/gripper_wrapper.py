@@ -49,7 +49,11 @@ class GripperWrapper:
         now = rospy.Time(0)
         self._tfl.waitForTransform(DEFAULT_FRAME, pose.header.frame_id, now, rospy.Duration(60))
         base_pose = self._tfl.transformPose(DEFAULT_FRAME, pose)
-        self._arm.move_to_pose(base_pose)
+        try:
+            self._arm.move_to_pose(base_pose)
+        except AttributeError:
+            # TODO do something
+            print "Failed to go to gripper pose"
         if grip_state == GRIPPER_OPEN and self._get_gripper_state() == GRIPPER_CLOSE:
             self._gripper.open()
         elif grip_state == GRIPPER_CLOSE and self._get_gripper_state() == GRIPPER_OPEN:

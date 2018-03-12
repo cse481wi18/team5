@@ -33,6 +33,8 @@ class Executor:
             elif c.payload["type"] == LOCATION:
                 self._run_location(c.payload["name"])
             elif c.payload["type"] == PROGRAM:
+                # TODO make sure to update the torso before running a program
+                # TODO this should be 0.2
                 actions = self._saver.get_saved_program(c.payload["name"])
                 for action in actions:
                     print action
