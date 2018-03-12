@@ -34,13 +34,15 @@ class Saver:
             if c.payload["type"] == GRIPPER:
                 self._grippers[c.payload["name"]] = self._gripper_wrapper.get_gripper_pose(
                     c.payload["frame_id"])
-                print "Saved grippers"
+                print "Saved gripper"
                 pickle.dump(self._grippers, open(GRIPPERS_FILE, 'wb'))
             elif c.payload["type"] == LOCATION:
-                self._annotator.save_pose(c.payload["name"])
+                saved_pose = self._annotator.save_pose(c.payload["name"])
+                print "Saved location: "
+                print saved_pose
             elif c.payload["type"] == PROGRAM:
                 self._programs[c.payload["name"]] = c.payload["actions"]
-                print "Saved programs"
+                print "Saved program"
                 pickle.dump(self._programs, open(PROGRAMS_FILE, 'wb'))
         elif c.command == COMMAND_LIST:
             print "Gripper poses: "
