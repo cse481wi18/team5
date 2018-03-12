@@ -1,6 +1,7 @@
 <launch>
-  <arg name="map_file" />
-  <arg name="ar_size" default="5.6" />
+  <arg name="map_file" default="/home/team5/maps/sieg_3.yaml" />
+  <arg name="ar_size" default="11.7" />
+
   <!-- Movegroup -->
   <include file="$(find fetch_moveit_config)/launch/move_group.launch" />
   <!-- AR markers -->

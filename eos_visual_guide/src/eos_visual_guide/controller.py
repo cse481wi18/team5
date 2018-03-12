@@ -5,6 +5,7 @@ from .saver import Saver
 from .executor import Executor
 from .leash import Leash
 from .ar_helper import ArTags
+from .torso_wrapper import TorsoWrapper
 
 
 class EosController:
@@ -14,6 +15,7 @@ class EosController:
         self._executor = Executor(self._saver)
         self._leash = Leash(self._leash_pulled_cb)
         self._ar = ArTags()
+        self._torso_wrapper = TorsoWrapper()
 
     def _leash_pulled_cb(self):
         """
