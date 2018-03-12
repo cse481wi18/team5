@@ -8,7 +8,7 @@ project(eos_visual_guide)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  joint_state_reader
+  rosserial_python
   rospy
 )
 

@@ -1,0 +1,4 @@
+<launch>
+  <!-- Rosserial -->
+  <node pkg="rosserial_python" name="serial_node" type="serial_node.py" />
+</launch>

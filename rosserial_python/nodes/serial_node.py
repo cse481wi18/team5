@@ -32,6 +32,9 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+import subprocess
+
+import os
 
 __author__ = "mferguson@willowgarage.com (Michael Ferguson)"
 
@@ -82,6 +85,7 @@ if __name__=="__main__":
             rospy.loginfo("All done")
 
     else :          # Use serial port
+        subprocess.call(["sudo", "chown", os.environ['USER'], port_name])
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
             try:
