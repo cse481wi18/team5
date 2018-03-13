@@ -1,5 +1,6 @@
 import gripper_wrapper
-from .user_input import UserInput, UserCommand, COMMAND_SAVE, COMMAND_EXIT, COMMAND_EXECUTE, COMMAND_LIST, COMMAND_SHOW
+from .user_input import UserInput, UserCommand, COMMAND_SAVE, COMMAND_EXIT, COMMAND_EXECUTE, COMMAND_LIST, COMMAND_SHOW, \
+    INTERFACE_CLI
 import saver
 import constants
 
@@ -30,10 +31,7 @@ def _print_choose_action_text(locations, grippers):
 
 class Cli(UserInput):
     def __init__(self):
-        UserInput.__init__(self)
-
-        print "Welcome to the EOS Command Line Interface!"
-        print "Loading subscribers and publishers..."
+        UserInput.__init__(self, INTERFACE_CLI)
 
     def get_command(self):
         """
@@ -87,8 +85,9 @@ class Cli(UserInput):
         while True:
             _print_choose_action_text(locations, grippers)
             entries = raw_input('>> ').split()
-            if not len(entries):
+            if not len(entries) or entries[0].lower() is "finish" or entries[0].lower() is "done":
                 return actions
-            # TODO ensure len 2
+            elif len(actions) is not 2:
+                print "Enter action in the form `type, name`"
             # TODO ensure that entries are valid
             actions.append(entries)

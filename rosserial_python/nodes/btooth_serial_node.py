@@ -32,9 +32,6 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-import subprocess
-
-import os
 
 __author__ = "mferguson@willowgarage.com (Michael Ferguson)"
 
@@ -48,10 +45,10 @@ import sys
 
 if __name__=="__main__":
 
-    rospy.init_node("serial_node")
+    rospy.init_node("btooth_serial_node")
     rospy.loginfo("ROS Serial Python Node")
 
-    port_name = rospy.get_param('~port','/dev/ttyUSB0')
+    port_name = rospy.get_param('~port','/dev/ttyACM0')
     baud = int(rospy.get_param('~baud','57600'))
 
     # for systems where pyserial yields errors in the fcntl.ioctl(self.fd, TIOCMBIS, \
@@ -85,7 +82,6 @@ if __name__=="__main__":
             rospy.loginfo("All done")
 
     else :          # Use serial port
-        subprocess.call(["sudo", "chown", os.environ['USER'], port_name])
         while not rospy.is_shutdown():
             rospy.loginfo("Connecting to %s at %d baud" % (port_name,baud) )
             try:

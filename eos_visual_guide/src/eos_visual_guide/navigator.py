@@ -1,8 +1,11 @@
+import sys
 import rospy
 import actionlib
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseGoal, MoveBaseAction
 from fetch_api import Head
+
+MAX_TRIES = 3
 
 
 class Navigator:
@@ -12,7 +15,7 @@ class Navigator:
         self._active = False
         self._nav_client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         # TODO remove this?
-        self._nav_client.wait_for_result()
+        # self._nav_client.wait_for_result()
         self._head = Head()
 
     def go_to(self, loc_msg):
@@ -32,6 +35,8 @@ class Navigator:
 
         print "Navigating..."
 
+        tries = 0
+
         # This means we only check 1 time every second
         r = rospy.Rate(1)
         while not rospy.is_shutdown():
@@ -39,23 +44,30 @@ class Navigator:
             if state == actionlib.GoalStatus.SUCCEEDED:
                 break
             elif state == actionlib.GoalStatus.REJECTED:
+                tries += 1
                 print "State was updated to REJECTED"
-                self._nav_client.send_goal(goal)
+                if tries < MAX_TRIES:
+                    self._nav_client.send_goal(goal)
+                else:
+                    print "Ran out of tries :("
             elif state == actionlib.GoalStatus.ABORTED:
+                tries += 1
                 print "State was updated to ABORTED"
-                self._nav_client.send_goal(goal)
+                if tries < MAX_TRIES:
+                    self._nav_client.send_goal(goal)
+                else:
+                    print "Ran out of tries :("
             r.sleep()
+        print "done!"
 
-        # Always reset the pan/tilt to 0 0 after navigation completes
-        print "Done!"
-        print "Waiting for navigation to wrap up..."
-
-        # Wait some time before doing this
+        sys.stdout.write("Waiting for navigation to wrap up...")
         rospy.sleep(rospy.Duration(5))
-        print "Done!"
-        print "Setting head pan/tilt..."
+        print "done!"
+
+        sys.stdout.write("Setting head pan/tilt...")
         self._head.pan_tilt(0, 0)
-        print "Done!"
+        print "done!"
+
         self._active = False
         self._curr_goal = None
         return True

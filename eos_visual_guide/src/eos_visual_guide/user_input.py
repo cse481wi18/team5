@@ -10,8 +10,9 @@ INTERFACE_APP = "app"
 
 
 class UserInput:
-    def __init__(self):
-        pass
+    def __init__(self, interface):
+        print "Starting: %s" % ("Command Line Application" if interface is INTERFACE_CLI else
+                                "Mobile Application")
 
     def get_command(self):
         raise NotImplementedError

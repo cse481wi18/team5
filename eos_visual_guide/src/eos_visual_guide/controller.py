@@ -1,6 +1,7 @@
 from .constants import GRIPPER, PROGRAM
 from .user_input import COMMAND_SAVE, COMMAND_EXECUTE, COMMAND_EXIT, COMMAND_LIST, COMMAND_SHOW
 from .cli import Cli
+from .mobile_app import MobileApp
 from .saver import Saver
 from .executor import Executor
 from .leash import Leash
@@ -10,7 +11,10 @@ from .torso_wrapper import TorsoWrapper
 
 class EosController:
     def __init__(self):
-        self._ui = Cli()
+        print "Welcome to EOS!"
+        print "Loading subscribers and publishers..."
+
+        self._ui = MobileApp()
         self._saver = Saver()
         self._executor = Executor(self._saver)
         self._leash = Leash(self._leash_pulled_cb)
@@ -39,7 +43,7 @@ class EosController:
                 elif c.payload["type"] == PROGRAM:
                     # Get all the grippers and locations we want
                     c.payload["actions"] = self._ui.get_actions(self._saver.get_saved_location_names(),
-                                                                      self._saver.get_saved_gripper_names())
+                                                                self._saver.get_saved_gripper_names())
                 self._saver.run_command(c)
             elif c.command == COMMAND_LIST:
                 self._saver.run_command(c)

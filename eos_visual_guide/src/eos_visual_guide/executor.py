@@ -15,10 +15,18 @@ class Executor:
         self._saver = saver
 
     def _run_gripper(self, name):
-        self._gripper_wrapper.go_to_gripper_pose(self._saver.get_saved_gripper(name))
+        pose = self._saver.get_saved_gripper(name)
+        if pose:
+            self._gripper_wrapper.go_to_gripper_pose(pose)
+        else:
+            print "Invalid gripper pose name"
 
     def _run_location(self, name):
-        self._navigator.go_to(self._saver.get_saved_location(name))
+        location = self._saver.get_saved_location(name)
+        if location:
+            self._navigator.go_to(location)
+        else:
+            print "Invalid location name"
 
     def run_command(self, c):
         """
@@ -36,15 +44,18 @@ class Executor:
                 # TODO make sure to update the torso before running a program
                 # TODO this should be 0.2
                 actions = self._saver.get_saved_program(c.payload["name"])
-                for action in actions:
-                    print action
-                    rospy.sleep(rospy.Duration(2))
-                    if action[0] == GRIPPER:
-                        self._run_gripper(action[1])
-                    elif action[0] == LOCATION:
-                        self._run_location(action[1])
-                    else:
-                        raise RuntimeError("Invalid program")
+                if actions:
+                    for action in actions:
+                        print action
+                        rospy.sleep(rospy.Duration(2))
+                        if action[0] == GRIPPER:
+                            self._run_gripper(action[1])
+                        elif action[0] == LOCATION:
+                            self._run_location(action[1])
+                        else:
+                            print "Program is not valid"
+                else:
+                    print "Invalid program name"
         elif c.command == COMMAND_ARM:
             if c.payload["type"] == RELAX:
                 self._arm_wrapper.arm_relax()
