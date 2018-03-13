@@ -16,7 +16,7 @@ class EosController:
         print "Welcome to EOS!"
         print "Loading subscribers and publishers..."
 
-        self._ui = Cli()
+        self._ui = MobileApp()
         self._saver = Saver()
         self._executor = Executor(self._saver)
         self._leash = Leash(self._leash_pulled_cb)

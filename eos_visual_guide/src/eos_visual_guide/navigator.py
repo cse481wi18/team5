@@ -50,6 +50,7 @@ class Navigator:
                     self._nav_client.send_goal(goal)
                 else:
                     print "Ran out of tries :("
+                    break
             elif state == actionlib.GoalStatus.ABORTED:
                 tries += 1
                 print "State was updated to ABORTED"
@@ -57,14 +58,17 @@ class Navigator:
                     self._nav_client.send_goal(goal)
                 else:
                     print "Ran out of tries :("
+                    break
             r.sleep()
         print "done!"
 
         sys.stdout.write("Waiting for navigation to wrap up...")
+        sys.stdout.flush()
         rospy.sleep(rospy.Duration(5))
         print "done!"
 
         sys.stdout.write("Setting head pan/tilt...")
+        sys.stdout.flush()
         self._head.pan_tilt(0, 0)
         print "done!"
 
