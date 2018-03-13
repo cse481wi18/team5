@@ -1,3 +1,5 @@
+import rospy
+
 from .constants import GRIPPER, PROGRAM
 from .user_input import COMMAND_SAVE, COMMAND_EXECUTE, COMMAND_EXIT, COMMAND_LIST, COMMAND_SHOW
 from .cli import Cli
@@ -14,7 +16,7 @@ class EosController:
         print "Welcome to EOS!"
         print "Loading subscribers and publishers..."
 
-        self._ui = MobileApp()
+        self._ui = Cli()
         self._saver = Saver()
         self._executor = Executor(self._saver)
         self._leash = Leash(self._leash_pulled_cb)
@@ -30,10 +32,10 @@ class EosController:
         self._executor.leash_pulled()
 
     def run(self):
-        while True:
+        while not rospy.is_shutdown():
             c = self._ui.get_command()
 
-            if c.command == COMMAND_EXIT:
+            if not c or c.command == COMMAND_EXIT:
                 return
             elif c.command == COMMAND_SAVE:
                 # Here we have special behavior for gripper saving

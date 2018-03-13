@@ -23,7 +23,7 @@ MESSAGE_MAP = {
 # Saving any programs that we want to save
 MESSAGE_MAP[6] = UserCommand(COMMAND_EXECUTE, {
     'type': PROGRAM,
-    'name': 'demo_2'
+    'name': 'room_demo'
 })
 
 
@@ -40,8 +40,12 @@ class MobileApp(UserInput):
     def get_command(self):
         sys.stdout.write("> ")
         sys.stdout.flush()
-        while not self._current_command:
+        while not self._current_command and not rospy.is_shutdown():
             rospy.sleep(rospy.Duration(1))
+
+        # On shutdown
+        if not self._current_command:
+            return None
 
         c = MESSAGE_MAP[self._current_command]
         print c.payload
