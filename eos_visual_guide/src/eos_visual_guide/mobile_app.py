@@ -23,7 +23,7 @@ MESSAGE_MAP = {
 # Saving any programs that we want to save
 MESSAGE_MAP[6] = UserCommand(COMMAND_EXECUTE, {
     'type': PROGRAM,
-    'name': 'demo_2'
+    'name': 'final_demo'
 })
 
 
