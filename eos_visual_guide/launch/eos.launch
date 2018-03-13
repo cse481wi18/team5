@@ -2,6 +2,9 @@
   <arg name="map_file" default="/home/team5/maps/sieg_3.yaml" />
   <arg name="ar_size" default="11.7" />
 
+  <!-- Serial nodes -->
+  <node pkg="rosserial_python" name="fsr_serial_node" type="fsr_serial_node.py" />
+  <node pkg="rosserial_python" name="btooth_serial_node" type="btooth_serial_node.py" />
   <!-- Movegroup -->
   <include file="$(find fetch_moveit_config)/launch/move_group.launch" />
   <!-- AR markers -->
